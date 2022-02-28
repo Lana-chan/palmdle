@@ -10,5 +10,9 @@ Binaries available in the [Releases][2] page
 
 To develop this application, the version 2 of the dev-package available in [this link][1] was used.
 
+## Acknowledgements
+
+https://github.com/RobbieNesmith/PalmWordle - A prior clone of the guessing game for Palm, which inspired me to learn Palm OS development to try and make my own version for older devices
+
 [1]: https://palm2000.com/projects/compilingAndBuildingPalmOsAppsOnUbuntu2004LTS.php
 [2]: https://github.com/Lana-chan/palmdle/releases
