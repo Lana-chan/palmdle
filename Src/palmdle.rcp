@@ -1,0 +1,64 @@
+#include "resID.h"
+
+DATA "code" ID 1 "code0001.bin"
+
+VERSION "0.1"
+ICON "icon1bpp.bmp"
+
+MENU ID MenuMain
+BEGIN
+  PULLDOWN "Options"
+  BEGIN
+    MENUITEM "About" ID MenuAbout
+  END
+END
+
+FORM ID FormMain AT (2 2 156 156)
+  NOFRAME USABLE
+  NOSAVEBEHIND
+  MENUID MenuMain
+BEGIN
+  TITLE "Palmdle"
+
+  LABEL "Guess:" AUTOID AT (25 BOTTOM@150) FONT 1
+  FIELD ID FieldInput AT (PREVRIGHT+5 PREVTOP 40 AUTO) EDITABLE UNDERLINED MAXCHARS 5
+  BUTTON "OK" ID ButtonOK AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
+
+  GRAFFITISTATEINDICATOR AT (140 140)
+END
+
+ALERT ID AlertDebug
+  INFORMATION
+BEGIN
+  TITLE "Debug"
+  MESSAGE "^1"
+  BUTTONS "Ok"
+END
+
+ALERT ID AlertWin
+  INFORMATION
+BEGIN
+  TITLE "Congratulations!"
+  MESSAGE "You guessed the word!"
+  BUTTONS "Ok"
+END
+
+ALERT ID AlertLose
+  INFORMATION
+BEGIN
+  TITLE "Sorry!"
+  MESSAGE "You ran out of guesses.\nThe word was: ^1"
+  BUTTONS "Ok"
+END
+
+BITMAP ID MapleBitmap "maple.bmp"
+
+FORM ID FormAbout AT (10 10 140 130)
+  MODAL
+BEGIN
+  FORMBITMAP AT (CENTER@50 10) BITMAP MapleBitmap
+  LABEL "Palmdle v0.1" AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
+  LABEL "made by maple \"mavica\" syrup" AUTOID AT (CENTER PREVBOTTOM+5)
+  LABEL "https://maple.pet" AUTOID AT (CENTER PREVBOTTOM+5)
+  BUTTON "OK" ID ButtonAbout AT (CENTER BOTTOM@120 AUTO AUTO)
+END
