@@ -20,7 +20,7 @@
 
 #define GUESS_XSPC TBL_CW
 #define GUESS_YSPC TBL_CH
-#define GUESS_XOFF 6
+#define GUESS_XOFF (GUESS_XSPC / 2)
 #define GUESS_YOFF 2
 
 typedef enum {
@@ -122,8 +122,9 @@ static void DrawGuess(UInt8 ucRow, WordleGame* pstGame) {
 		cCurChar = pstGame->szGuesses[ucRow][i];
 		if (cCurChar == 0) cCurChar = (char)' ';
 		cToUpper(&cCurChar);
-		if (!pstGame->boolHideLetters)
-			WinDrawChars(&cCurChar, 1, chr_x, chr_y);
+		if (!pstGame->boolHideLetters) {
+			WinDrawChars(&cCurChar, 1, chr_x - (FntCharWidth(cCurChar) / 2), chr_y);
+		}
 
 		GuessResult enResult = DetermineResult(cCurChar, i, szTempAnswer);
 		MarkSquare(i, ucRow, enResult);
