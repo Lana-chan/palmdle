@@ -37,8 +37,11 @@ $(TARGET).prc: code0001.bin
 %.elf: $(OBJS)
 	$(LD) -o $@ $(LDFLAGS) $^
 
-%.o : %.c Makefile
-	$(CC) $(CCFLAGS)  $(INCS) -c $< -o $@
+%.o : %.c Src/allowelist.h
+	$(CC) $(CCFLAGS) $(INCS) -c $< -o $@
+
+Src/allowelist.h:
+	python3 scripts/generate_guesslist.py
 
 clean:
 	rm -rf $(OBJS) $(NAME).elf

@@ -3,9 +3,11 @@
 #include <string.h>
 #include "resID.h"
 #include "wordlist.h"
+#include "allowedlist.h"
 
 #define WORD_LEN 5
 #define MAX_GUESS 6
+#define B26_LEN 3
 
 #define TBL_X 30        // left
 #define TBL_Y 25        // top
@@ -31,6 +33,8 @@ typedef struct t_WordleGame {
 	char szWord[WORD_LEN + 1];
 	char szGuesses[MAX_GUESS][WORD_LEN + 1];
 	UInt8 ucGuessCount;
+	MemPtr allowed_ptr;
+	MemPtr answer_ptr;
 } WordleGame;
 
 // makes the table outline for the guess letters
@@ -122,18 +126,38 @@ static void DrawGuess(UInt8 ucRow, const char* szGuess, const char* szAnswer) {
 }
 
 // determines if an input is a valid wordle guess
-Boolean IsValidGuess(const char* szGuess) {
+Boolean IsValidGuess(const char* szGuess, WordleGame* pstGame) {
 	if (StrLen(szGuess) != WORD_LEN) return false;
 
-	int i;
+	unsigned int i;
 	char c;
+	UInt32 ulB26 = 0;
+	char szUpperGuess[5];
 	for (i = 0; i < WORD_LEN; i++) {
 		c = szGuess[i];
 		cToUpper(&c);
 		if (c < (char)'A' || c > (char)'Z') return false;
+		szUpperGuess[i] = c;
+		// to b26
+		ulB26 = ulB26 * 26;
+		ulB26 += (int)(c - (char)'A');
 	}
 
-	return true;
+	unsigned char ucGuess[] = {
+		(unsigned char)(ulB26>>16)&0xFF,
+		(unsigned char)(ulB26>>8)&0xFF,
+		(unsigned char)(ulB26)&0xFF
+	};
+
+	for (i = 0; i < ANSWER_COUNT; i++) {
+		if (!MemCmp(szUpperGuess, pstGame->answer_ptr + (i * WORD_LEN), WORD_LEN)) return true;
+	}
+
+	for (i = 0; i < allowed_count; i++) {
+		if (!MemCmp(ucGuess, pstGame->allowed_ptr + (i * B26_LEN), B26_LEN)) return true;
+	}
+	
+	return false;
 }
 
 // caseless string compare, true if same, false if not
@@ -158,7 +182,7 @@ static void GameSubmitGuess(WordleGame* pstGame) {
 			FrmGetObjectIndex(FrmGetActiveForm(), FieldInput));
 		char* szGuess = FldGetTextPtr(objGuess);
 
-		if (IsValidGuess(szGuess)) {
+		if (IsValidGuess(szGuess, pstGame)) {
 			// add guess to board
 			MemMove(pstGame->szGuesses[pstGame->ucGuessCount], szGuess, WORD_LEN+1);
 			DrawGuess(pstGame->ucGuessCount, pstGame->szGuesses[pstGame->ucGuessCount], pstGame->szWord);
@@ -199,10 +223,8 @@ static void GameInit(WordleGame* pstGame) {
 	UInt16 uiDateDifference = (DateToDays(stDate) - DateToDays(stBaseDate));
 	UInt16 uiAnswerIndex = uiDateDifference % ANSWER_COUNT;
 
-	char* szAnswerList = (char*)MemPtrNew(ANSWER_COUNT * (WORD_LEN+1));
-	MemMove(szAnswerList, ANSWER_ARRAY, ANSWER_COUNT * (WORD_LEN+1));
-	MemMove(pstGame->szWord, szAnswerList + uiAnswerIndex * (WORD_LEN+1), WORD_LEN+1);
-	MemPtrFree(szAnswerList);
+	MemMove(pstGame->szWord, pstGame->answer_ptr + uiAnswerIndex * (WORD_LEN), WORD_LEN);
+	pstGame->szWord[WORD_LEN] = (char)'\0';
 
 	pstGame->ucGuessCount = 0;
 }
@@ -294,6 +316,15 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		WordleGame* pstGame = (WordleGame*)MemPtrNew(sizeof(WordleGame));
 		if ((UInt32)pstGame == 0) return -1;
 		MemSet(pstGame, sizeof(WordleGame), 0);
+
+		pstGame->allowed_ptr = MemPtrNew(allowed_count * 3);
+		if((UInt32)pstGame->allowed_ptr == 0) return -1;
+		MemMove(pstGame->allowed_ptr, allowed_list, allowed_count * 3);
+
+		pstGame->answer_ptr = MemPtrNew(ANSWER_COUNT * WORD_LEN);
+		if((UInt32)pstGame->answer_ptr == 0) return -1;
+		MemMove(pstGame->answer_ptr, ANSWER_LIST, ANSWER_COUNT * WORD_LEN);
+		
 		GameInit(pstGame);
 
 		FormType* frmMain = FrmInitForm(FormMain);
@@ -320,6 +351,8 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FrmSetActiveForm(NULL);
 		FrmDeleteForm(frmMain);
 
+		MemPtrFree(pstGame->allowed_ptr);
+		MemPtrFree(pstGame->answer_ptr);
 		MemPtrFree((MemPtr)pstGame);
 	}
 
