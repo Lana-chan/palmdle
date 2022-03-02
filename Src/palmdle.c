@@ -35,14 +35,19 @@ typedef struct t_WordleGame {
 	UInt8 ucGuessCount;
 	MemPtr allowed_ptr;
 	MemPtr answer_ptr;
+	Boolean boolHideLetters;
 } WordleGame;
 
 // makes the table outline for the guess letters
 static void DrawGuessTable(void) {
 	RectangleType pRect;
 	RctSetRectangle(&pRect, TBL_X, TBL_Y, TBL_W, TBL_H);
+	WinPushDrawState();
+	CustomPatternType blank = {0};
+	WinSetPattern(&blank);
+	WinFillRectangle(&pRect, 0);
+	WinPopDrawState();
 	WinDrawRectangleFrame(simpleFrame, &pRect);
-
 	int i, n;
 	for (i = 1; i < TBL_C; i++) {
 		n = TBL_X + (TBL_CW * i);
@@ -102,22 +107,23 @@ void cToUpper(char* c) {
 }
 
 // prints the guess letters to the table
-static void DrawGuess(UInt8 ucRow, const char* szGuess, const char* szAnswer) {
-	if (!szGuess[0]) return;
+static void DrawGuess(UInt8 ucRow, WordleGame* pstGame) {
+	if (!pstGame->szGuesses[ucRow][0]) return;
 
 	int chr_x = TBL_X + GUESS_XOFF;
 	int chr_y = TBL_Y + GUESS_YOFF + (ucRow * GUESS_YSPC);
 	int i;
 	char cCurChar;
 	char szTempAnswer[WORD_LEN+1];
-	MemMove(szTempAnswer, szAnswer, WORD_LEN+1);
+	MemMove(szTempAnswer, pstGame->szWord, WORD_LEN+1);
 
 	FntSetFont(largeFont);
 	for (i = 0; i < TBL_C; i++) {
-		cCurChar = szGuess[i];
+		cCurChar = pstGame->szGuesses[ucRow][i];
 		if (cCurChar == 0) cCurChar = (char)' ';
 		cToUpper(&cCurChar);
-		WinDrawChars(&cCurChar, 1, chr_x, chr_y);
+		if (!pstGame->boolHideLetters)
+			WinDrawChars(&cCurChar, 1, chr_x, chr_y);
 
 		GuessResult enResult = DetermineResult(cCurChar, i, szTempAnswer);
 		MarkSquare(i, ucRow, enResult);
@@ -185,7 +191,7 @@ static void GameSubmitGuess(WordleGame* pstGame) {
 		if (IsValidGuess(szGuess, pstGame)) {
 			// add guess to board
 			MemMove(pstGame->szGuesses[pstGame->ucGuessCount], szGuess, WORD_LEN+1);
-			DrawGuess(pstGame->ucGuessCount, pstGame->szGuesses[pstGame->ucGuessCount], pstGame->szWord);
+			DrawGuess(pstGame->ucGuessCount, pstGame);
 			pstGame->ucGuessCount++;
 
 			// check if game has been lost or won
@@ -236,7 +242,7 @@ static void GameUpdateScreen(WordleGame* pstGame) {
 	
 	int i;
 	for (i = 0; i < MAX_GUESS; i++) {
-		DrawGuess(i, pstGame->szGuesses[i], pstGame->szWord);
+		DrawGuess(i, pstGame);
 	}
 }
 
@@ -264,6 +270,11 @@ static void ShowAboutForm(FormType* frmMain) {
 	FrmEraseForm(frmAbout);
 	FrmSetActiveForm(frmMain);
 	FrmDeleteForm(frmAbout);
+}
+
+static void ToggleHideLetters(WordleGame* pstGame) {
+	pstGame->boolHideLetters = !pstGame->boolHideLetters;
+	GameUpdateScreen(pstGame);
 }
 
 // event handler
@@ -297,6 +308,10 @@ static Boolean GameHandleEvent(EventType* event, WordleGame* pstGame) {
 			switch(event->data.menu.itemID) {
 				case MenuAbout:
 					ShowAboutForm(FrmGetActiveForm());
+					return true;
+					
+				case MenuHideLetters:
+					ToggleHideLetters(pstGame);
 					break;
 			}
 			break;
@@ -342,7 +357,6 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 
 			if (MenuHandleEvent(NULL, &event, &error))
 				continue;
-
 
 			FrmHandleEvent(frmMain, &event);
 		} while (event.eType != appStopEvent);

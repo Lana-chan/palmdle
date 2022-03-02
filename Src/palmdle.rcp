@@ -9,7 +9,9 @@ MENU ID MenuMain
 BEGIN
   PULLDOWN "Options"
   BEGIN
-    MENUITEM "About" ID MenuAbout
+    MENUITEM "Toggle Hide letters" ID MenuHideLetters "L"
+    MENUITEM SEPARATOR
+    MENUITEM "About..." ID MenuAbout
   END
 END
 
