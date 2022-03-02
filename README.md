@@ -14,5 +14,9 @@ To develop this application, the version 2 of the dev-package available in [this
 
 https://github.com/RobbieNesmith/PalmWordle - A prior clone of the guessing game for Palm, which inspired me to learn Palm OS development to try and make my own version for older devices
 
+https://kevincox.ca/2022/03/01/dictionary-compression/ - For helping me with ideas how to compress the allowed guesses list
+
+https://dmitry.gr/ - For help with the Palm OS API and encouragement
+
 [1]: https://palm2000.com/projects/compilingAndBuildingPalmOsAppsOnUbuntu2004LTS.php
 [2]: https://github.com/Lana-chan/palmdle/releases
