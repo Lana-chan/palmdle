@@ -220,6 +220,7 @@ static void GameSubmitGuess(WordleGame* pstGame) {
 			MemHandleUnlock(pTextH);
 			FldSetTextHandle(objGuess, pTextH);
 			FldDrawField(objGuess);
+			FldGrabFocus(objGuess);
 		}
 	}
 }
