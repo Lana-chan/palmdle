@@ -39,6 +39,7 @@ typedef struct t_WordleGame {
 	MemPtr answer_ptr;
 	MemHandle answer_hdl;
 	Boolean boolHideLetters;
+	char szTitle[32];
 } WordleGame;
 
 // makes the table outline for the guess letters
@@ -245,6 +246,9 @@ static void GameInit(WordleGame* pstGame) {
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
 	pstGame->ucGuessCount = 0;
+
+	StrPrintF(pstGame->szTitle, "Palmdle %d\0", uiAnswerIndex);
+	FrmSetTitle(FrmGetActiveForm(), pstGame->szTitle);
 }
 
 // refreshes the form screen
@@ -292,10 +296,6 @@ static void ToggleHideLetters(WordleGame* pstGame) {
 // event handler
 static Boolean GameHandleEvent(EventType* event, WordleGame* pstGame) {
 	switch (event->eType) {
-		case frmLoadEvent:
-			GameInit(pstGame);
-			return true;
-
 		case frmOpenEvent:
 		case frmGotoEvent:
 		case frmUpdateEvent:
@@ -340,6 +340,9 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 	UInt16 error;
 
 	if (sysAppLaunchCmdNormalLaunch == cmd) {
+		FormType* frmMain = FrmInitForm(FormMain);
+		FrmSetActiveForm(frmMain);
+
 		WordleGame* pstGame = (WordleGame*)MemPtrNew(sizeof(WordleGame));
 		if ((UInt32)pstGame == 0) return -1;
 		MemSet(pstGame, sizeof(WordleGame), 0);
@@ -357,9 +360,6 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		if((UInt32)pstGame->answer_ptr == 0) return -1;
 		
 		GameInit(pstGame);
-
-		FormType* frmMain = FrmInitForm(FormMain);
-		FrmSetActiveForm(frmMain);
 		GameUpdateScreen(pstGame);
 
 		do {
