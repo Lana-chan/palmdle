@@ -15,3 +15,7 @@
 
 #define MainFtrCreator  0x6d617669
 #define MainFtrNum      42
+
+#define AllowedListFile   900
+#define AllowedIndexFile  901
+#define AnswerListFile    902

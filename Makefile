@@ -37,11 +37,11 @@ $(TARGET).prc: code0001.bin
 %.elf: $(OBJS)
 	$(LD) -o $@ $(LDFLAGS) $^
 
-%.o : %.c Src/allowelist.h
+%.o : %.c Src/wordlists.h
 	$(CC) $(CCFLAGS) $(INCS) -c $< -o $@
 
-Src/allowelist.h:
-	python3 scripts/generate_guesslist.py
+Src/wordlists.h:
+	python3 scripts/generate_wordlist.py
 
 clean:
 	rm -rf $(OBJS) $(NAME).elf

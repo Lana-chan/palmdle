@@ -2,6 +2,10 @@
 
 DATA "code" ID 1 "code0001.bin"
 
+DATA "word" ID AllowedListFile "allowedlist.bin"
+DATA "word" ID AllowedIndexFile "allowedindex.bin"
+DATA "word" ID AnswerListFile "answerlist.bin"
+
 VERSION "0.2"
 ICON "icon1bpp.bmp"
 

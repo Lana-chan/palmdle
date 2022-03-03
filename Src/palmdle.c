@@ -2,12 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "resID.h"
-#include "wordlist.h"
-#include "allowedlist.h"
+#include "wordlists.h"
 
 #define WORD_LEN 5
 #define MAX_GUESS 6
-#define B26_LEN 3
+#define B26_LEN 2
 
 #define TBL_X 30        // left
 #define TBL_Y 25        // top
@@ -34,7 +33,11 @@ typedef struct t_WordleGame {
 	char szGuesses[MAX_GUESS][WORD_LEN + 1];
 	UInt8 ucGuessCount;
 	MemPtr allowed_ptr;
+	MemHandle allowed_hdl;
+	MemPtr allowed_idx_ptr;
+	MemHandle allowed_idx_hdl;
 	MemPtr answer_ptr;
+	MemHandle answer_hdl;
 	Boolean boolHideLetters;
 } WordleGame;
 
@@ -146,22 +149,29 @@ Boolean IsValidGuess(const char* szGuess, WordleGame* pstGame) {
 		if (c < (char)'A' || c > (char)'Z') return false;
 		szUpperGuess[i] = c;
 		// to b26
-		ulB26 = ulB26 * 26;
-		ulB26 += (int)(c - (char)'A');
+		if (i > 1) {
+			ulB26 = ulB26 * 26;
+			ulB26 += (int)(c - (char)'A');
+		}
 	}
+	unsigned int uiGuessPrefix = ((szUpperGuess[0] - (char)'A') * 26) + (szUpperGuess[1] - (char)'A');
 
 	unsigned char ucGuess[] = {
-		(unsigned char)(ulB26>>16)&0xFF,
 		(unsigned char)(ulB26>>8)&0xFF,
 		(unsigned char)(ulB26)&0xFF
 	};
+
+	unsigned int uiGuessIndex = 0;
+	for (i = 0; i < uiGuessPrefix; i++) {
+		uiGuessIndex += *(unsigned char*)(pstGame->allowed_idx_ptr + i);
+	}
 
 	for (i = 0; i < ANSWER_COUNT; i++) {
 		if (!MemCmp(szUpperGuess, pstGame->answer_ptr + (i * WORD_LEN), WORD_LEN)) return true;
 	}
 
-	for (i = 0; i < allowed_count; i++) {
-		if (!MemCmp(ucGuess, pstGame->allowed_ptr + (i * B26_LEN), B26_LEN)) return true;
+	for (i = 0; i < *(unsigned char*)(pstGame->allowed_idx_ptr + uiGuessPrefix); i++) {
+		if (!MemCmp(ucGuess, pstGame->allowed_ptr + ((i + uiGuessIndex) * B26_LEN), B26_LEN)) return true;
 	}
 	
 	return false;
@@ -333,13 +343,17 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		if ((UInt32)pstGame == 0) return -1;
 		MemSet(pstGame, sizeof(WordleGame), 0);
 
-		pstGame->allowed_ptr = MemPtrNew(allowed_count * 3);
+		pstGame->allowed_hdl = DmGet1Resource(0x776f7264, AllowedListFile);
+		pstGame->allowed_ptr = MemHandleLock(pstGame->allowed_hdl);
 		if((UInt32)pstGame->allowed_ptr == 0) return -1;
-		MemMove(pstGame->allowed_ptr, allowed_list, allowed_count * 3);
 
-		pstGame->answer_ptr = MemPtrNew(ANSWER_COUNT * WORD_LEN);
+		pstGame->allowed_idx_hdl = DmGet1Resource(0x776f7264, AllowedIndexFile);
+		pstGame->allowed_idx_ptr = MemHandleLock(pstGame->allowed_idx_hdl);
+		if((UInt32)pstGame->allowed_idx_ptr == 0) return -1;
+
+		pstGame->answer_hdl = DmGet1Resource(0x776f7264, AnswerListFile);
+		pstGame->answer_ptr = MemHandleLock(pstGame->answer_hdl);
 		if((UInt32)pstGame->answer_ptr == 0) return -1;
-		MemMove(pstGame->answer_ptr, ANSWER_LIST, ANSWER_COUNT * WORD_LEN);
 		
 		GameInit(pstGame);
 
@@ -366,8 +380,12 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FrmSetActiveForm(NULL);
 		FrmDeleteForm(frmMain);
 
-		MemPtrFree(pstGame->allowed_ptr);
-		MemPtrFree(pstGame->answer_ptr);
+		MemHandleUnlock(pstGame->allowed_hdl);
+		DmReleaseResource(pstGame->allowed_hdl);
+		MemHandleUnlock(pstGame->allowed_idx_hdl);
+		DmReleaseResource(pstGame->allowed_idx_hdl);
+		MemHandleUnlock(pstGame->answer_hdl);
+		DmReleaseResource(pstGame->answer_hdl);
 		MemPtrFree((MemPtr)pstGame);
 	}
 
