@@ -4,18 +4,26 @@
 #include "resID.h"
 #include "wordlists.h"
 
-#define WORD_LEN 5
+#define WORD_LEN  5
 #define MAX_GUESS 6
-#define B26_LEN 2
+#define B26_LEN   2
 
-#define TBL_X 30        // left
-#define TBL_Y 25        // top
-#define TBL_CW 20       // cell width
-#define TBL_CH 17       // cell height
-#define TBL_C WORD_LEN  // columns
-#define TBL_R MAX_GUESS // rows
+#define TBL_X  10        // left
+#define TBL_Y  25        // top
+#define TBL_CW 20        // cell width
+#define TBL_CH 17        // cell height
+#define TBL_C  WORD_LEN  // columns
+#define TBL_R  MAX_GUESS // rows
 #define TBL_W (TBL_CW * TBL_C)  // total width
 #define TBL_H (TBL_CH * TBL_R)  // total height
+
+#define ALPHABET    "abcdefghijklmnopqrstuvwxyz"
+#define ALPHA_LEN   26
+#define ALPHA_ROWS  10
+#define ALPHA_X    (TBL_X + TBL_W + 15)
+#define ALPHA_Y     25
+#define ALPHA_X_STP 10
+#define ALPHA_Y_STP 10
 
 #define GUESS_XSPC TBL_CW
 #define GUESS_YSPC TBL_CH
@@ -31,6 +39,7 @@ typedef enum {
 typedef struct t_PalmdleGame {
 	char szWord[WORD_LEN + 1];                // word to be guessed
 	char szGuesses[MAX_GUESS][WORD_LEN + 1];  // stores the play field
+	char szGuessedLetters[ALPHA_LEN];         // store which letters have already been guessed
 	UInt8 ucGuessCount;                       // number of current guess (starts at 0)
 	MemPtr allowed_ptr;                       // dictionary list pointer
 	MemHandle allowed_hdl;                    // and handle
@@ -43,6 +52,37 @@ typedef struct t_PalmdleGame {
 } PalmdleGame;
 
 /***************************
+ * Description: converts lower case char to upper case in place
+ * Input      : c
+ * Output     : c
+ * Return     : none
+ ***************************/
+void cToUpper(char* c) {
+	if (*c >= (char)'a' && *c <= (char)'z') *c -= 32;
+}
+
+/***************************
+ * Description: converts upper case char to lower case in place
+ * Input      : c
+ * Output     : c
+ * Return     : none
+ ***************************/
+void cToLower(char* c) {
+	if (*c >= (char)'A' && *c <= (char)'Z') *c += 32;
+}
+
+/***************************
+ * Description: checks if char is uppercase
+ * Input      : c
+ * Output     : none
+ * Return     : true if upper
+ ***************************/
+Boolean cIsUpper(char c) {
+	if (c >= (char)'A' && c <= (char)'Z') return true;
+	return false;
+}
+
+/***************************
  * Description: draws the play field guess table
  * Input      : none
  * Output     : none
@@ -50,7 +90,7 @@ typedef struct t_PalmdleGame {
  ***************************/
 static void DrawGuessTable(void) {
 	RectangleType pRect;
-	RctSetRectangle(&pRect, TBL_X, TBL_Y, TBL_W, TBL_H);
+	RctSetRectangle(&pRect, TBL_X+1, TBL_Y+1, TBL_W-1, TBL_H-1);
 	WinPushDrawState();
 	CustomPatternType blank = {0};
 	WinSetPattern(&blank);
@@ -70,16 +110,60 @@ static void DrawGuessTable(void) {
 }
 
 /***************************
+ * Description: draws the guessed letters
+ * Input      : pstGame - game struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void DrawGuessedLetters(PalmdleGame* pstGame) {
+	unsigned int i;
+	unsigned char x = 0;
+	char c;
+	RectangleType pRect;
+
+	WinPushDrawState();
+	CustomPatternType blank = {0};
+	WinSetPattern(&blank);
+
+	for (i = 0; i < ALPHA_LEN; i++) {
+		c = pstGame->szGuessedLetters[i];
+		if (pstGame->boolHideLetters) c = ' ';
+		FntSetFont(stdFont);
+		if (c != ' ') {
+			if (cIsUpper(c)) FntSetFont(boldFont);
+			cToUpper(&c);
+			WinDrawChars(&c, 1,
+				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
+				ALPHA_Y + (i % ALPHA_ROWS) * ALPHA_Y_STP);
+		} else {
+			c = (char)'A' + i;
+			FntSetFont(boldFont);
+			RctSetRectangle(&pRect,
+				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
+				ALPHA_Y + (i % ALPHA_ROWS) * ALPHA_Y_STP,
+				FntCharWidth(c),
+				FntCharHeight());
+			WinFillRectangle(&pRect, 0);
+		}
+		if (!((i + 1) % ALPHA_ROWS)) x += 1;
+	}
+
+	WinPopDrawState();
+}
+
+/***************************
  * Description: determines the marker to be used for a letter of a guess
  * Input      : cLetter - one letter of the result
  *            : iPosition - 0-idx of the letter
  *            : szAnswer - the game's current answer to be guessed
- * Output     : none
+ * Output     : szAnswer - modified to mark already guessed letters
+ *            : szGuessedLetters - modified to mark already guessed letters
  * Return     : GuessResult
  ***************************/
-static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer) {
+static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer, char* szGuessedLetters) {
 	if (szAnswer[iPosition] == cLetter) {
 		szAnswer[iPosition] = (char)' ';
+		cToUpper(&szGuessedLetters[cLetter - (char)'A']);
 		return enrCorrectLetter;
 	}
 
@@ -88,10 +172,12 @@ static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer) 
 		if (i == iPosition) continue;
 		if (szAnswer[i] == cLetter) {
 			szAnswer[i] = (char)' ';
+			cToUpper(&szGuessedLetters[cLetter - (char)'A']);
 			return enrWrongPosition;
 		}
 	}
 
+	szGuessedLetters[cLetter - (char)'A'] = (char)' ';
 	return enrWrongLetter;
 }
 
@@ -125,16 +211,6 @@ static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
 }
 
 /***************************
- * Description: converts lower case char to upper case in place
- * Input      : c
- * Output     : c
- * Return     : none
- ***************************/
-void cToUpper(char* c) {
-	if (*c >= (char)'a' && *c <= (char)'z') *c -= 32;
-}
-
-/***************************
  * Description: draws a guess word across a row of the play field, along with markers
  * Input      : ucRow - which row to draw
  *            : pstGame - game struct, new guess must already be populated
@@ -160,7 +236,7 @@ static void DrawGuess(UInt8 ucRow, PalmdleGame* pstGame) {
 			WinDrawChars(&cCurChar, 1, chr_x - (FntCharWidth(cCurChar) / 2), chr_y);
 		}
 
-		GuessResult enResult = DetermineResult(cCurChar, i, szTempAnswer);
+		GuessResult enResult = DetermineResult(cCurChar, i, szTempAnswer, pstGame->szGuessedLetters);
 		MarkSquare(i, ucRow, enResult);
 		chr_x += GUESS_XSPC;
 	}
@@ -253,6 +329,8 @@ static void GameSubmitGuess(PalmdleGame* pstGame) {
 			DrawGuess(pstGame->ucGuessCount, pstGame);
 			pstGame->ucGuessCount++;
 
+			DrawGuessedLetters(pstGame);
+
 			// check if game has been lost or won
 			if (CaselessCompare(szGuess, pstGame->szWord, WORD_LEN)) {
 				FrmAlert(AlertWin);
@@ -299,6 +377,8 @@ static void GameInit(PalmdleGame* pstGame) {
 
 	pstGame->ucGuessCount = 0;
 
+	StrPrintF(pstGame->szGuessedLetters, ALPHABET);
+
 	StrPrintF(pstGame->szTitle, "Palmdle %d\0", uiAnswerIndex);
 	FrmSetTitle(FrmGetActiveForm(), pstGame->szTitle);
 }
@@ -317,6 +397,8 @@ static void GameUpdateScreen(PalmdleGame* pstGame) {
 	for (i = 0; i < MAX_GUESS; i++) {
 		DrawGuess(i, pstGame);
 	}
+
+	DrawGuessedLetters(pstGame);
 }
 
 /***************************
@@ -351,12 +433,24 @@ static void ShowAboutForm(FormType* frmMain) {
 	FrmDeleteForm(frmAbout);
 }
 
+/***************************
+ * Description: toggle whether letters are hidden for sharing
+ * Input      : pstGame - game struct
+ * Output     : none
+ * Return     : none
+ ***************************/
 static void ToggleHideLetters(PalmdleGame* pstGame) {
 	pstGame->boolHideLetters = !pstGame->boolHideLetters;
 	GameUpdateScreen(pstGame);
 }
 
-// event handler
+/***************************
+ * Description: event handler for main form
+ * Input      : event - data to be handled
+ *            : pstGame - game struct
+ * Output     : none
+ * Return     : true if event was handled
+ ***************************/
 static Boolean GameHandleEvent(EventType* event, PalmdleGame* pstGame) {
 	switch (event->eType) {
 		case frmOpenEvent:
