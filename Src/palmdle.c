@@ -28,21 +28,26 @@ typedef enum {
 	enrCorrectLetter
 } GuessResult;
 
-typedef struct t_WordleGame {
-	char szWord[WORD_LEN + 1];
-	char szGuesses[MAX_GUESS][WORD_LEN + 1];
-	UInt8 ucGuessCount;
-	MemPtr allowed_ptr;
-	MemHandle allowed_hdl;
-	MemPtr allowed_idx_ptr;
-	MemHandle allowed_idx_hdl;
-	MemPtr answer_ptr;
-	MemHandle answer_hdl;
-	Boolean boolHideLetters;
-	char szTitle[32];
-} WordleGame;
+typedef struct t_PalmdleGame {
+	char szWord[WORD_LEN + 1];								// word to be guessed
+	char szGuesses[MAX_GUESS][WORD_LEN + 1];	// stores the play field
+	UInt8 ucGuessCount;												// number of current guess (starts at 0)
+	MemPtr allowed_ptr;												// dictionary list pointer
+	MemHandle allowed_hdl;										// and handle
+	MemPtr allowed_idx_ptr;										// dictionary index pointer
+	MemHandle allowed_idx_hdl;								// and handle
+	MemPtr answer_ptr;												// answer list pointer
+	MemHandle answer_hdl;											// and handle
+	Boolean boolHideLetters;									// whether or not letters are to be hidden (share mode)
+	char szTitle[32];													// form title (has day number)
+} PalmdleGame;
 
-// makes the table outline for the guess letters
+/***************************
+ * Description: draws the play field with guess table, letters and markers
+ * Input      : none
+ * Output     : none
+ * Return     : none
+ ***************************/
 static void DrawGuessTable(void) {
 	RectangleType pRect;
 	RctSetRectangle(&pRect, TBL_X, TBL_Y, TBL_W, TBL_H);
@@ -64,7 +69,14 @@ static void DrawGuessTable(void) {
 	}
 }
 
-// checks whether a letter in one guess is correct
+/***************************
+ * Description: determines the marker to be used for a letter of a guess
+ * Input      : cLetter - one letter of the result
+ *            : iPosition - 0-idx of the letter
+ *            : szAnswer - the game's current answer to be guessed
+ * Output     : none
+ * Return     : GuessResult
+ ***************************/
 static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer) {
 	if (szAnswer[iPosition] == cLetter) {
 		szAnswer[iPosition] = (char)' ';
@@ -83,7 +95,13 @@ static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer) 
 	return enrWrongLetter;
 }
 
-// draws guess results markers on table
+/***************************
+ * Description: draws the guess marker on a letter cell
+ * Input      : ucColumn, ucRow - 0-idx position of the marker
+ *            : enResult - GuessResult to be drawn
+ * Output     : none
+ * Return     : none
+ ***************************/
 static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
 	RectangleType pRect;
 	RctSetRectangle(&pRect,
@@ -106,12 +124,24 @@ static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
 	}
 }
 
+/***************************
+ * Description: converts lower case char to upper case in place
+ * Input      : c
+ * Output     : c
+ * Return     : none
+ ***************************/
 void cToUpper(char* c) {
 	if (*c >= (char)'a' && *c <= (char)'z') *c -= 32;
 }
 
-// prints the guess letters to the table
-static void DrawGuess(UInt8 ucRow, WordleGame* pstGame) {
+/***************************
+ * Description: draws a guess word across a row of the play field
+ * Input      : ucRow - which row to draw
+ *            : pstGame - game struct, new guess must already be populated
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void DrawGuess(UInt8 ucRow, PalmdleGame* pstGame) {
 	if (!pstGame->szGuesses[ucRow][0]) return;
 
 	int chr_x = TBL_X + GUESS_XOFF;
@@ -136,8 +166,14 @@ static void DrawGuess(UInt8 ucRow, WordleGame* pstGame) {
 	}
 }
 
-// determines if an input is a valid wordle guess
-Boolean IsValidGuess(const char* szGuess, WordleGame* pstGame) {
+/***************************
+ * Description: determines if an input is a valid palmdle guess
+ * Input      : szGuess - string to check against
+ *            : pstGame - game struct
+ * Output     : none
+ * Return     : true or false
+ ***************************/
+Boolean IsValidGuess(const char* szGuess, PalmdleGame* pstGame) {
 	if (StrLen(szGuess) != WORD_LEN) return false;
 
 	unsigned int i;
@@ -178,7 +214,13 @@ Boolean IsValidGuess(const char* szGuess, WordleGame* pstGame) {
 	return false;
 }
 
-// caseless string compare, true if same, false if not
+/***************************
+ * Description: checks if two strings are the same, caseless
+ * Input      : sz1, sz2 - strings to be compared
+ *            : ucLen - length of chars to compare
+ * Output     : none
+ * Return     : true if same, false otherwise
+ ***************************/
 static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
 	int i;
 	char c1, c2;
@@ -193,8 +235,13 @@ static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
 	return true;
 }
 
-// called when OK is pressed on guess field
-static void GameSubmitGuess(WordleGame* pstGame) {
+/***************************
+ * Description: uses form guess field to process and populate next guess in game
+ * Input      : pstGame - game struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void GameSubmitGuess(PalmdleGame* pstGame) {
 	if (pstGame->ucGuessCount < MAX_GUESS) {
 		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(FrmGetActiveForm(),
 			FrmGetObjectIndex(FrmGetActiveForm(), FieldInput));
@@ -226,8 +273,13 @@ static void GameSubmitGuess(WordleGame* pstGame) {
 	}
 }
 
-// initializes the game struct
-static void GameInit(WordleGame* pstGame) {
+/***************************
+ * Description: initialize game struct
+ * Input      : pstGame - game struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void GameInit(PalmdleGame* pstGame) {
 	MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
 
 	DateType stDate;
@@ -251,8 +303,13 @@ static void GameInit(WordleGame* pstGame) {
 	FrmSetTitle(FrmGetActiveForm(), pstGame->szTitle);
 }
 
-// refreshes the form screen
-static void GameUpdateScreen(WordleGame* pstGame) {
+/***************************
+ * Description: redraw the current form and the entire game field
+ * Input      : pstGame - game struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void GameUpdateScreen(PalmdleGame* pstGame) {
 	FrmDrawForm(FrmGetActiveForm());
 	DrawGuessTable();
 	
@@ -262,6 +319,12 @@ static void GameUpdateScreen(WordleGame* pstGame) {
 	}
 }
 
+/***************************
+ * Description: show about form and handle
+ * Input      : frmMain - the main form to return to
+ * Output     : none
+ * Return     : none
+ ***************************/
 static void ShowAboutForm(FormType* frmMain) {
 	EventType event;
 	UInt16 error;
@@ -288,13 +351,13 @@ static void ShowAboutForm(FormType* frmMain) {
 	FrmDeleteForm(frmAbout);
 }
 
-static void ToggleHideLetters(WordleGame* pstGame) {
+static void ToggleHideLetters(PalmdleGame* pstGame) {
 	pstGame->boolHideLetters = !pstGame->boolHideLetters;
 	GameUpdateScreen(pstGame);
 }
 
 // event handler
-static Boolean GameHandleEvent(EventType* event, WordleGame* pstGame) {
+static Boolean GameHandleEvent(EventType* event, PalmdleGame* pstGame) {
 	switch (event->eType) {
 		case frmOpenEvent:
 		case frmGotoEvent:
@@ -343,9 +406,9 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FormType* frmMain = FrmInitForm(FormMain);
 		FrmSetActiveForm(frmMain);
 
-		WordleGame* pstGame = (WordleGame*)MemPtrNew(sizeof(WordleGame));
+		PalmdleGame* pstGame = (PalmdleGame*)MemPtrNew(sizeof(PalmdleGame));
 		if ((UInt32)pstGame == 0) return -1;
-		MemSet(pstGame, sizeof(WordleGame), 0);
+		MemSet(pstGame, sizeof(PalmdleGame), 0);
 
 		pstGame->allowed_hdl = DmGet1Resource(0x776f7264, AllowedListFile);
 		pstGame->allowed_ptr = MemHandleLock(pstGame->allowed_hdl);
