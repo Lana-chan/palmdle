@@ -29,17 +29,17 @@ typedef enum {
 } GuessResult;
 
 typedef struct t_PalmdleGame {
-	char szWord[WORD_LEN + 1];								// word to be guessed
-	char szGuesses[MAX_GUESS][WORD_LEN + 1];	// stores the play field
-	UInt8 ucGuessCount;												// number of current guess (starts at 0)
-	MemPtr allowed_ptr;												// dictionary list pointer
-	MemHandle allowed_hdl;										// and handle
-	MemPtr allowed_idx_ptr;										// dictionary index pointer
-	MemHandle allowed_idx_hdl;								// and handle
-	MemPtr answer_ptr;												// answer list pointer
-	MemHandle answer_hdl;											// and handle
-	Boolean boolHideLetters;									// whether or not letters are to be hidden (share mode)
-	char szTitle[32];													// form title (has day number)
+	char szWord[WORD_LEN + 1];                // word to be guessed
+	char szGuesses[MAX_GUESS][WORD_LEN + 1];  // stores the play field
+	UInt8 ucGuessCount;                       // number of current guess (starts at 0)
+	MemPtr allowed_ptr;                       // dictionary list pointer
+	MemHandle allowed_hdl;                    // and handle
+	MemPtr allowed_idx_ptr;                   // dictionary index pointer
+	MemHandle allowed_idx_hdl;                // and handle
+	MemPtr answer_ptr;                        // answer list pointer
+	MemHandle answer_hdl;                     // and handle
+	Boolean boolHideLetters;                  // whether or not letters are to be hidden (share mode)
+	char szTitle[32];                         // form title (has day number)
 } PalmdleGame;
 
 /***************************
