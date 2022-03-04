@@ -43,7 +43,7 @@ typedef struct t_PalmdleGame {
 } PalmdleGame;
 
 /***************************
- * Description: draws the play field with guess table, letters and markers
+ * Description: draws the play field guess table
  * Input      : none
  * Output     : none
  * Return     : none
@@ -135,7 +135,7 @@ void cToUpper(char* c) {
 }
 
 /***************************
- * Description: draws a guess word across a row of the play field
+ * Description: draws a guess word across a row of the play field, along with markers
  * Input      : ucRow - which row to draw
  *            : pstGame - game struct, new guess must already be populated
  * Output     : none

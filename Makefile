@@ -14,7 +14,7 @@ RCP         =	Src/palmdle.rcp
 RSC         =	Src/
 OBJS        =	$(patsubst %.S,%.o,$(patsubst %.c,%.o,$(SRCS)))
 TYPE        =	appl
-TARGET      = Palmdle
+TARGET      =	Palmdle
 
 #add PalmOS SDK
 INCS			+=	-isystem$(SDK)
