@@ -11,10 +11,13 @@ ICON "icon1bpp.bmp"
 
 MENU ID MenuMain
 BEGIN
-  PULLDOWN "Options"
+  PULLDOWN "Game"
   BEGIN
     MENUITEM "Toggle Hide letters" ID MenuHideLetters "L"
-    MENUITEM SEPARATOR
+  END
+  PULLDOWN "Options"
+  BEGIN
+    MENUITEM "Help" ID MenuHelp "H"
     MENUITEM "About..." ID MenuAbout
   END
 END
@@ -66,5 +69,23 @@ BEGIN
   LABEL "Palmdle v0.2" AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
   LABEL "made by maple \"mavica\" syrup" AUTOID AT (CENTER PREVBOTTOM+5)
   LABEL "https://maple.pet" AUTOID AT (CENTER PREVBOTTOM+5)
-  BUTTON "OK" ID ButtonAbout AT (CENTER BOTTOM@120 AUTO AUTO)
+  BUTTON "OK" ID ButtonDialog AT (CENTER BOTTOM@120 AUTO AUTO)
+END
+
+BITMAP ID BitmapWrong "wrongpos1bpp.bmp"
+BITMAP ID BitmapCorrect "correctletter1bpp.bmp"
+
+FORM ID FormHelp AT (10 10 140 140)
+  MODAL
+BEGIN
+  LABEL "Guess the five-letter" AUTOID AT (CENTER 6)
+  LABEL "word in six tries." AUTOID AT (CENTER PREVBOTTOM)
+  LABEL "Each guess must be a valid word," AUTOID AT (CENTER PREVBOTTOM+4)
+  LABEL "hit OK or Enter to submit." AUTOID AT (CENTER PREVBOTTOM)
+  LABEL "After each guess, the letters" AUTOID AT (CENTER PREVBOTTOM+4)
+  LABEL "will be marked to show how" AUTOID AT (CENTER PREVBOTTOM)
+  LABEL "close your guess was." AUTOID AT (CENTER PREVBOTTOM)
+  BUTTON "OK" ID ButtonDialog AT (CENTER 120 AUTO AUTO)
+  FORMBITMAP AT (10 BOTTOM@115) BITMAP BitmapWrong
+  FORMBITMAP AT (98 BOTTOM@115) BITMAP BitmapCorrect
 END

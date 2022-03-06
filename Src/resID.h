@@ -2,12 +2,16 @@
 #define MenuMain        500
 #define MenuAbout       501
 #define MenuHideLetters 502
+#define MenuHelp        503
 #define FieldInput      1001
 #define ButtonOK        1002
 
-#define FormAbout   1100
-#define MapleBitmap 1101
-#define ButtonAbout 1102
+#define FormAbout     1100
+#define MapleBitmap   1101
+#define ButtonDialog  1102
+#define FormHelp      1200
+#define BitmapWrong   1201
+#define BitmapCorrect 1202
 
 #define AlertDebug  700
 #define AlertWin    701

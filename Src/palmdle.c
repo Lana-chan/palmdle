@@ -406,17 +406,17 @@ static void GameUpdateScreen(PalmdleGame* pstGame) {
 }
 
 /***************************
- * Description: show about form and handle
+ * Description: show dialog form and handle
  * Input      : frmMain - the main form to return to
  * Output     : none
  * Return     : none
  ***************************/
-static void ShowAboutForm(FormType* frmMain) {
+static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID) {
 	EventType event;
 	UInt16 error;
-	FormType* frmAbout = FrmInitForm(FormAbout);
-	FrmSetActiveForm(frmAbout);
-	FrmDrawForm(frmAbout);
+	FormType* frmDialog = FrmInitForm(uiFormID);
+	FrmSetActiveForm(frmDialog);
+	FrmDrawForm(frmDialog);
 	do {
 		EvtGetEvent(&event, evtWaitForever);
 		
@@ -424,17 +424,17 @@ static void ShowAboutForm(FormType* frmMain) {
 			continue;
 
 		if (event.eType == ctlSelectEvent) {
-			if (event.data.ctlSelect.controlID == ButtonAbout) {
+			if (event.data.ctlSelect.controlID == ButtonDialog) {
 				break;
 			}
 		}
 
-		FrmHandleEvent(frmAbout, &event);
+		FrmHandleEvent(frmDialog, &event);
 	} while (event.eType != appStopEvent);
 
-	FrmEraseForm(frmAbout);
+	FrmEraseForm(frmDialog);
 	FrmSetActiveForm(frmMain);
-	FrmDeleteForm(frmAbout);
+	FrmDeleteForm(frmDialog);
 }
 
 /***************************
@@ -480,7 +480,11 @@ static Boolean GameHandleEvent(EventType* event, PalmdleGame* pstGame) {
 		case menuEvent:
 			switch(event->data.menu.itemID) {
 				case MenuAbout:
-					ShowAboutForm(FrmGetActiveForm());
+					ShowDialogForm(FrmGetActiveForm(), FormAbout);
+					return true;
+
+				case MenuHelp:
+					ShowDialogForm(FrmGetActiveForm(), FormHelp);
 					return true;
 					
 				case MenuHideLetters:
