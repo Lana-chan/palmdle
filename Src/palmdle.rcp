@@ -78,8 +78,8 @@ BITMAP ID BitmapCorrect "correctletter1bpp.bmp"
 FORM ID FormHelp AT (10 10 140 140)
   MODAL
 BEGIN
-  LABEL "Guess the five-letter" AUTOID AT (CENTER 6)
-  LABEL "word in six tries." AUTOID AT (CENTER PREVBOTTOM)
+  LABEL "Guess a new five-letter" AUTOID AT (CENTER 6)
+  LABEL "word each day in six tries." AUTOID AT (CENTER PREVBOTTOM)
   LABEL "Each guess must be a valid word," AUTOID AT (CENTER PREVBOTTOM+4)
   LABEL "hit OK or Enter to submit." AUTOID AT (CENTER PREVBOTTOM)
   LABEL "After each guess, the letters" AUTOID AT (CENTER PREVBOTTOM+4)
