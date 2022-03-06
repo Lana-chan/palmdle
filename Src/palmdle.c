@@ -19,11 +19,12 @@
 
 #define ALPHABET    "abcdefghijklmnopqrstuvwxyz"
 #define ALPHA_LEN   26
-#define ALPHA_ROWS  10
-#define ALPHA_X    (TBL_X + TBL_W + 15)
-#define ALPHA_Y     25
+#define ALPHA_ROWS  9
+#define ALPHA_COLS  3
+#define ALPHA_X    (TBL_X + TBL_W + 13)
+#define ALPHA_Y     23
 #define ALPHA_X_STP 10
-#define ALPHA_Y_STP 10
+#define ALPHA_Y_STP 12
 
 #define GUESS_XSPC TBL_CW
 #define GUESS_YSPC TBL_CH
@@ -117,7 +118,7 @@ static void DrawGuessTable(void) {
  ***************************/
 static void DrawGuessedLetters(PalmdleGame* pstGame) {
 	unsigned int i;
-	unsigned char x = 0;
+	unsigned char x = 0, y = 0;
 	char c;
 	RectangleType pRect;
 
@@ -126,6 +127,8 @@ static void DrawGuessedLetters(PalmdleGame* pstGame) {
 	WinSetPattern(&blank);
 
 	for (i = 0; i < ALPHA_LEN; i++) {
+		//y = i % ALPHA_ROWS;
+		x = i % ALPHA_COLS;
 		c = pstGame->szGuessedLetters[i];
 		if (pstGame->boolHideLetters) c = ' ';
 		FntSetFont(stdFont);
@@ -134,18 +137,19 @@ static void DrawGuessedLetters(PalmdleGame* pstGame) {
 			cToUpper(&c);
 			WinDrawChars(&c, 1,
 				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
-				ALPHA_Y + (i % ALPHA_ROWS) * ALPHA_Y_STP);
+				ALPHA_Y + (y * ALPHA_Y_STP));
 		} else {
 			c = (char)'A' + i;
 			FntSetFont(boldFont);
 			RctSetRectangle(&pRect,
 				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
-				ALPHA_Y + (i % ALPHA_ROWS) * ALPHA_Y_STP,
+				ALPHA_Y + (y * ALPHA_Y_STP),
 				FntCharWidth(c),
 				FntCharHeight());
 			WinFillRectangle(&pRect, 0);
 		}
-		if (!((i + 1) % ALPHA_ROWS)) x += 1;
+		//if (!((i + 1) % ALPHA_ROWS)) x += 1;
+		if (!((i + 1) % ALPHA_COLS)) y += 1;
 	}
 
 	WinPopDrawState();
