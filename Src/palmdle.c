@@ -92,11 +92,12 @@ Boolean cIsUpper(char c) {
 static void DrawGuessTable(void) {
 	RectangleType pRect;
 	RctSetRectangle(&pRect, TBL_X+1, TBL_Y+1, TBL_W-1, TBL_H-1);
-	WinPushDrawState();
-	CustomPatternType blank = {0};
+	
+	CustomPatternType blank;
+	MemSet(&blank, sizeof(CustomPatternType), 0);
 	WinSetPattern(&blank);
 	WinFillRectangle(&pRect, 0);
-	WinPopDrawState();
+	
 	WinDrawRectangleFrame(simpleFrame, &pRect);
 	int i, n;
 	for (i = 1; i < TBL_C; i++) {
@@ -122,9 +123,9 @@ static void DrawGuessedLetters(PalmdleGame* pstGame) {
 	char c;
 	RectangleType pRect;
 
-	WinPushDrawState();
-	CustomPatternType blank = {0};
-	WinSetPattern(&blank);
+	CustomPatternType ptBlank;
+	MemSet(&ptBlank, sizeof(CustomPatternType), 0);
+	WinSetPattern(&ptBlank);
 
 	for (i = 0; i < ALPHA_LEN; i++) {
 		//y = i % ALPHA_ROWS;
@@ -151,8 +152,6 @@ static void DrawGuessedLetters(PalmdleGame* pstGame) {
 		//if (!((i + 1) % ALPHA_ROWS)) x += 1;
 		if (!((i + 1) % ALPHA_COLS)) y += 1;
 	}
-
-	WinPopDrawState();
 }
 
 /***************************
