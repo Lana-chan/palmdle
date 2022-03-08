@@ -11,9 +11,14 @@
 #define FormAbout     1100
 #define MapleBitmap   1101
 #define ButtonDialog  1102
+
 #define FormHelp      1200
 #define BitmapWrong   1201
 #define BitmapCorrect 1202
+
+#define FormStats     1300
+#define ButtonDelete  1301
+#define TableStats    1302
 
 #define AlertDebug        700
 #define AlertWin          701
@@ -21,6 +26,7 @@
 #define AlertNewDaily     703
 #define AlertAlreadyDaily 704
 #define AlertForfeit      705
+#define AlertDelete       706
 
 #define MainFtrCreator  0x6d617669
 #define MainFtrNum      42

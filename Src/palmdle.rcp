@@ -64,7 +64,7 @@ BEGIN
 END
 
 ALERT ID AlertNewDaily
-  INFORMATION
+  CONFIRMATION
 BEGIN
   TITLE "New daily available!"
   MESSAGE "There is a new daily challenge available.\nWould you like to play it now?"
@@ -80,10 +80,18 @@ BEGIN
 END
 
 ALERT ID AlertForfeit
-  INFORMATION
+  CONFIRMATION
 BEGIN
   TITLE "Start new game?"
   MESSAGE "You will forfeit the current game. Are you sure?"
+  BUTTONS "Yes" "No"
+END
+
+ALERT ID AlertDelete
+  WARNING
+BEGIN
+  TITLE "Delete all stats?"
+  MESSAGE "You will lose all your current Palmdle data. Are you sure?"
   BUTTONS "Yes" "No"
 END
 
@@ -115,4 +123,13 @@ BEGIN
   BUTTON "OK" ID ButtonDialog AT (CENTER 120 AUTO AUTO)
   FORMBITMAP AT (10 BOTTOM@115) BITMAP BitmapWrong
   FORMBITMAP AT (98 BOTTOM@115) BITMAP BitmapCorrect
+END
+
+FORM ID FormStats AT (10 10 140 100)
+  MODAL
+BEGIN
+  LABEL "Your Palmdle Stats" AUTOID AT (CENTER 6) FONT 1
+  TABLE ID TableStats AT (CENTER PREVBOTTOM+5 120 48) ROWS 4 COLUMNS 2 COLUMNWIDTHS 70 50
+  BUTTON "OK" ID ButtonDialog AT (10 BOTTOM@90 AUTO AUTO)
+  BUTTON "Delete all stats" ID ButtonDelete AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
 END

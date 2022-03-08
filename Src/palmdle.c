@@ -56,6 +56,7 @@ typedef struct t_PalmdlePrefs {
 	DateType dateLastPlayed;                  // date which the last daily game was played
 	DateType dateLastWon;                     // date which the last daily game was won
 	UInt16 uiStreak;                          // streak counter
+	UInt16 uiMaxStreak;                       // longest streak
 	UInt16 uiGamesWon;                        // total games won
 	UInt16 uiGamesPlayed;                     // total games played
 	PalmdleGame stSavedGame;                  // a saved game
@@ -380,9 +381,28 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			if (CaselessCompare(szGuess, pstGame->szWord, WORD_LEN)) {
 				FrmAlert(AlertWin);
 				pstGame->ucGuessCount = MAX_GUESS;
+
+				if (pstGame->enState == enDailyGame) {
+					DateType dateToday;
+					DateSecondsToDate(TimGetSeconds(), &dateToday);
+
+					pstVars->pstPrefs->uiStreak += 1;
+					if (pstVars->pstPrefs->uiStreak > pstVars->pstPrefs->uiMaxStreak) {
+						pstVars->pstPrefs->uiMaxStreak = pstVars->pstPrefs->uiStreak;
+					}
+
+					DateSecondsToDate(TimGetSeconds(), &pstVars->pstPrefs->dateLastWon);
+					pstVars->pstPrefs->uiGamesWon += 1;
+				}
+				
 				pstGame->enState = enNoGame;
 			} else if (pstGame->ucGuessCount == MAX_GUESS) {
 				FrmCustomAlert(AlertLose, pstGame->szWord, "", "");
+
+				if (pstGame->enState == enDailyGame) {
+					pstVars->pstPrefs->uiStreak = 0;
+				}
+
 				pstGame->enState = enNoGame;
 			}
 
@@ -408,6 +428,12 @@ static void PrefsLoad(PalmdleVars* pstVars) {
 	if (!PrefGetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs))) {
 		MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
 	}
+
+	// 2.0 date fix?
+	if (pstVars->pstPrefs->dateLastPlayed.year == 0) {
+		DateSecondsToDate(TimGetSeconds(), &pstVars->pstPrefs->dateLastPlayed);
+		DateAdjust(&pstVars->pstPrefs->dateLastPlayed, -1);
+	}
 }
 
 /***************************
@@ -416,8 +442,10 @@ static void PrefsLoad(PalmdleVars* pstVars) {
  * Output     : none
  * Return     : none
  ***************************/
-static void PrefsSave(PalmdleVars* pstVars) {
-	MemMove(&pstVars->pstPrefs->stSavedGame, &pstVars->stGame, sizeof(PalmdleGame));
+static void PrefsSave(PalmdleVars* pstVars, Boolean fSaveGame) {
+	if (fSaveGame) {
+		MemMove(&pstVars->pstPrefs->stSavedGame, &pstVars->stGame, sizeof(PalmdleGame));
+	}
 	PrefSetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs));
 }
 
@@ -477,6 +505,10 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 		MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
 
 		if (fIsDaily) {
+			if (DateToDays(stDate) - DateToDays(pstVars->pstPrefs->dateLastWon) > 1) {
+				pstVars->pstPrefs->uiStreak = 0;
+			}
+
 			DateType stBaseDate;
 			MemSet(&stBaseDate, sizeof(DateType), 0);
 			stBaseDate.year = 2021 - 1904;
@@ -488,6 +520,7 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 
 			pstGame->enState = enDailyGame;
 			pstVars->pstPrefs->dateLastPlayed = stDate;
+			pstVars->pstPrefs->uiGamesPlayed += 1;
 		} else {
 			// random index game
 			pstGame->uiAnswerIndex = SysRandom(0) % ANSWER_COUNT;
@@ -514,6 +547,7 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 static void GameUpdateScreen(PalmdleVars* pstVars) {
 	FrmEraseForm(pstVars->frmMain);
 	FrmDrawForm(pstVars->frmMain);
+	FntSetFont(stdFont);
 	WinDrawChars(pstVars->szTitle, strlen(pstVars->szTitle), 48, 2);
 	DrawGuessTable();
 	
@@ -526,8 +560,90 @@ static void GameUpdateScreen(PalmdleVars* pstVars) {
 }
 
 /***************************
+ * Description: update stats table
+ * Input      : pTable - table pointer
+ *            : pstVars - vars struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void UpdateStatsTable(TableType* objTable, PalmdleVars* pstVars) {
+	char szTableLabels[4][16];
+	int i;
+
+	StrPrintF(szTableLabels[0], "Games Played");
+	StrPrintF(szTableLabels[1], "Games Won");
+	StrPrintF(szTableLabels[2], "Current Streak");
+	StrPrintF(szTableLabels[3], "Longest Streak");
+
+	for (i = 0; i < 4; i++) {
+		TblSetItemStyle(objTable, i, 0, labelTableItem);
+		TblSetItemStyle(objTable, i, 1, numericTableItem);
+		TblSetItemPtr(objTable, i, 0, szTableLabels[i]);
+		TblSetRowUsable(objTable, i, true);
+		TblMarkRowInvalid(objTable, i);
+	}
+
+	TblSetItemInt(objTable, 0, 1, pstVars->pstPrefs->uiGamesPlayed);
+	TblSetItemInt(objTable, 1, 1, pstVars->pstPrefs->uiGamesWon);
+	TblSetItemInt(objTable, 2, 1, pstVars->pstPrefs->uiStreak);
+	TblSetItemInt(objTable, 3, 1, pstVars->pstPrefs->uiMaxStreak);
+
+	TblSetColumnUsable(objTable, 0, true);
+	TblSetColumnUsable(objTable, 1, true);
+	
+	TblRedrawTable(objTable);
+}
+
+/***************************
+ * Description: show stats form and handle
+ * Input      : frmMain - the main form to return to
+ *            : pstVars - vars struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void ShowStatsForm(FormType* frmMain, PalmdleVars* pstVars) {
+	EventType event;
+	UInt16 error;
+	FormType* frmDialog = FrmInitForm(FormStats);
+	FrmSetActiveForm(frmDialog);
+
+	TableType* objTable = (TableType*)FrmGetObjectPtr(frmDialog,
+			FrmGetObjectIndex(frmDialog, TableStats));
+	FrmDrawForm(frmDialog);
+	UpdateStatsTable(objTable, pstVars);
+
+	do {
+		EvtGetEvent(&event, evtWaitForever);
+		
+		if (SysHandleEvent(&event))
+			continue;
+
+		if (event.eType == ctlSelectEvent) {
+			if (event.data.ctlSelect.controlID == ButtonDialog) {
+				break;
+			}
+
+			if (event.data.ctlSelect.controlID == ButtonDelete) {
+				if (!FrmAlert(AlertDelete)) {
+					MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
+					PrefsSave(pstVars, false);
+					UpdateStatsTable(objTable, pstVars);
+				}
+			}
+		}
+
+		FrmHandleEvent(frmDialog, &event);
+	} while (event.eType != appStopEvent);
+
+	FrmEraseForm(frmDialog);
+	FrmSetActiveForm(frmMain);
+	FrmDeleteForm(frmDialog);
+}
+
+/***************************
  * Description: show dialog form and handle
  * Input      : frmMain - the main form to return to
+ *              uiFormID - ID of the (generic) dialog form to show
  * Output     : none
  * Return     : none
  ***************************/
@@ -607,6 +723,10 @@ static Boolean GameHandleEvent(EventType* event, PalmdleVars* pstVars) {
 					ShowDialogForm(FrmGetActiveForm(), FormHelp);
 					return true;
 
+				case MenuStats:
+					ShowStatsForm(FrmGetActiveForm(), pstVars);
+					return true;
+
 				case MenuNewGame:
 					GameInit(pstVars, false);
 					GameUpdateScreen(pstVars);
@@ -676,7 +796,7 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FrmSetActiveForm(NULL);
 		FrmDeleteForm(frmMain);
 
-		PrefsSave(pstVars);
+		PrefsSave(pstVars, true);
 
 		MemHandleUnlock(pstVars->allowed_hdl);
 		DmReleaseResource(pstVars->allowed_hdl);
