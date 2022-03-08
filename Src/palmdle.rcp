@@ -6,8 +6,9 @@ DATA "word" ID AllowedListFile "allowedlist.bin"
 DATA "word" ID AllowedIndexFile "allowedindex.bin"
 DATA "word" ID AnswerListFile "answerlist.bin"
 
-VERSION "0.2"
+VERSION "1.0"
 ICON "icon1bpp.bmp"
+LAUNCHERCATEGORY "Games"
 
 MENU ID MenuMain
 BEGIN
@@ -101,7 +102,7 @@ FORM ID FormAbout AT (10 10 140 130)
   MODAL
 BEGIN
   FORMBITMAP AT (CENTER@50 10) BITMAP MapleBitmap
-  LABEL "Palmdle v0.2" AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
+  LABEL "Palmdle v1.0" AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
   LABEL "made by maple \"mavica\" syrup" AUTOID AT (CENTER PREVBOTTOM+5)
   LABEL "https://maple.pet" AUTOID AT (CENTER PREVBOTTOM+5)
   BUTTON "OK" ID ButtonDialog AT (CENTER BOTTOM@120 AUTO AUTO)
