@@ -15,9 +15,10 @@
 #define BitmapWrong   1201
 #define BitmapCorrect 1202
 
-#define AlertDebug  700
-#define AlertWin    701
-#define AlertLose   702
+#define AlertDebug    700
+#define AlertWin      701
+#define AlertLose     702
+#define AlertNewDaily 703
 
 #define MainFtrCreator  0x6d617669
 #define MainFtrNum      42

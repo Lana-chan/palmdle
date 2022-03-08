@@ -63,6 +63,14 @@ BEGIN
   BUTTONS "Ok"
 END
 
+ALERT ID AlertNewDaily
+  INFORMATION
+BEGIN
+  TITLE "New daily available!"
+  MESSAGE "There is a new daily challenge available.\nWould you like to play it now?"
+  BUTTONS "Yes" "No"
+END
+
 BITMAP ID MapleBitmap "maple.bmp"
 
 FORM ID FormAbout AT (10 10 140 130)

@@ -53,7 +53,8 @@ typedef struct t_PalmdleGame {
 } PalmdleGame;
 
 typedef struct t_PalmdlePrefs {
-	DateType dateLastPlayed;                  // date which the last daily game was init
+	DateType dateLastPlayed;                  // date which the last daily game was played
+	DateType dateLastWon;                     // date which the last daily game was won
 	UInt16 uiStreak;                          // streak counter
 	UInt16 uiGamesWon;                        // total games won
 	UInt16 uiGamesPlayed;                     // total games played
@@ -407,7 +408,7 @@ static void PrefsSave(PalmdleVars* pstVars) {
 
 /***************************
  * Description: initialize game struct
- * Input      : pstVars - vars struct
+ * Input      : pstVars - vars struct, game state must be enNoGame for new game
  *            : fIsDaily - are we initing a daily game or a random game?
  * Output     : none
  * Return     : none
@@ -417,19 +418,42 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 
 	if (!pstVars->fPrefsLoaded) {
 		PrefsLoad(pstVars);
+		pstVars->fPrefsLoaded = true;
 	
 		if (pstVars->pstPrefs->stSavedGame.enState != enNoGame) {
 			// there's a game saved, restore it
 			MemMove(pstGame, &pstVars->pstPrefs->stSavedGame, sizeof(PalmdleGame));
-		} 
+		}
+	}
+
+	DateType stDate;
+	DateSecondsToDate(TimGetSeconds(), &stDate);
+
+	if (DateToDays(stDate) - DateToDays(pstVars->pstPrefs->dateLastPlayed) < 1) {
+		// already played this game
+		fIsDaily = false;
+	} else {
+		// new daily available
+		if (pstGame->enState != enNoGame) {
+			// but we already restored a game
+			switch (FrmAlert(AlertNewDaily)) {
+				case 0:
+					pstGame->enState = enNoGame;
+					fIsDaily = true;
+					break;
+				default:
+					break;
+			}
+		}
 	}
 
 	if (pstGame->enState == enNoGame) {
 		// new game
-		if (fIsDaily) {
-			DateType stDate;
-			DateSecondsToDate(TimGetSeconds(), &stDate);
+		pstGame->ucGuessCount = 0;
+		StrPrintF(pstGame->szGuessedLetters, ALPHABET);
+		MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
 
+		if (fIsDaily) {
 			DateType stBaseDate;
 			MemSet(&stBaseDate, sizeof(DateType), 0);
 			stBaseDate.year = 2021 - 1904;
@@ -438,14 +462,13 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 
 			UInt16 uiDateDifference = (DateToDays(stDate) - DateToDays(stBaseDate));
 			pstGame->uiAnswerIndex = uiDateDifference % ANSWER_COUNT;
-			
-			pstGame->ucGuessCount = 0;
-			StrPrintF(pstGame->szGuessedLetters, ALPHABET);
-			MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
 
 			pstGame->enState = enDailyGame;
+			pstVars->pstPrefs->dateLastPlayed = stDate;
 		} else {
 			// random index game
+			pstGame->uiAnswerIndex = SysRandom(0) % ANSWER_COUNT;
+			pstGame->enState = enUntrackedGame;
 		}
 	}
 
@@ -558,7 +581,8 @@ static Boolean GameHandleEvent(EventType* event, PalmdleVars* pstVars) {
 
 				case MenuNewGame:
 					MemSet(&pstVars->stGame, sizeof(PalmdleGame), 0);
-					PrefsSave(pstVars);
+					GameInit(pstVars, false);
+					GameUpdateScreen(pstVars);
 					return true;
 					
 				case MenuHideLetters:
