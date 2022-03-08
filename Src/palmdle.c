@@ -181,32 +181,47 @@ static void DrawGuessedLetters(PalmdleVars* pstVars) {
 
 /***************************
  * Description: determines the marker to be used for a letter of a guess
- * Input      : cLetter - one letter of the result
- *            : iPosition - 0-idx of the letter
+ * Input      : szGuess - the guess entered
  *            : szAnswer - the game's current answer to be guessed
- * Output     : szAnswer - modified to mark already guessed letters
+ * Output     : penResult - array of 5 GuessResults
  *            : szGuessedLetters - modified to mark already guessed letters
- * Return     : GuessResult
+ * Return     : none
  ***************************/
-static GuessResult DetermineResult(char cLetter, int iPosition, char* szAnswer, char* szGuessedLetters) {
-	if (szAnswer[iPosition] == cLetter) {
-		szAnswer[iPosition] = (char)' ';
-		cToUpper(&szGuessedLetters[cLetter - (char)'A']);
-		return enrCorrectLetter;
-	}
+static void DetermineResult(GuessResult* penResult, const char* szGuess, const char* szAnswer, char* szGuessedLetters) {
+	char szTempAnswer[WORD_LEN+1];
+	MemMove(szTempAnswer, szAnswer, WORD_LEN+1);
 
-	int i;
+	char c;
+	int i, n;
+	int iGuessIdx;
 	for (i = 0; i < WORD_LEN; i++) {
-		if (i == iPosition) continue;
-		if (szAnswer[i] == cLetter) {
-			szAnswer[i] = (char)' ';
-			cToUpper(&szGuessedLetters[cLetter - (char)'A']);
-			return enrWrongPosition;
+		c = szGuess[i]; 
+		cToUpper(&c);
+		iGuessIdx = c - 'A';
+		if (szTempAnswer[i] == c) {
+			penResult[i] = enrCorrectLetter;
+			szTempAnswer[i] = ' ';
+			cToUpper(&szGuessedLetters[iGuessIdx]);
 		}
 	}
 
-	szGuessedLetters[cLetter - (char)'A'] = (char)' ';
-	return enrWrongLetter;
+	for (i = 0; i < WORD_LEN; i++) {
+		if(penResult[i] != enrWrongLetter) continue;
+		c = szGuess[i];
+		cToUpper(&c);
+		iGuessIdx = c - 'A';
+		for(n = 0; n < WORD_LEN; n++) {
+			if(szTempAnswer[n] == ' ') continue;
+			if (szTempAnswer[n] == c) {
+				penResult[i] = enrWrongPosition;
+				szTempAnswer[n] = ' ';
+				cToUpper(&szGuessedLetters[iGuessIdx]);
+			}
+		}
+		if (penResult[i] == enrWrongLetter && !cIsUpper(szGuessedLetters[iGuessIdx])) {
+			szGuessedLetters[iGuessIdx] = ' ';
+		}
+	}
 }
 
 /***************************
@@ -253,10 +268,11 @@ static void DrawGuess(UInt8 ucRow, PalmdleVars* pstVars) {
 	int chr_y = TBL_Y + GUESS_YOFF + (ucRow * GUESS_YSPC);
 	int i;
 	char cCurChar;
-	char szTempAnswer[WORD_LEN+1];
-	MemMove(szTempAnswer, pstGame->szWord, WORD_LEN+1);
 
 	FntSetFont(largeFont);
+	GuessResult enResult[WORD_LEN];
+	MemSet(enResult, sizeof(enResult), 0);
+	DetermineResult(enResult, pstGame->szGuesses[ucRow], pstGame->szWord, pstGame->szGuessedLetters);
 	for (i = 0; i < TBL_C; i++) {
 		cCurChar = pstGame->szGuesses[ucRow][i];
 		if (cCurChar == 0) cCurChar = (char)' ';
@@ -265,8 +281,7 @@ static void DrawGuess(UInt8 ucRow, PalmdleVars* pstVars) {
 			WinDrawChars(&cCurChar, 1, chr_x - (FntCharWidth(cCurChar) / 2), chr_y);
 		}
 
-		GuessResult enResult = DetermineResult(cCurChar, i, szTempAnswer, pstGame->szGuessedLetters);
-		MarkSquare(i, ucRow, enResult);
+		MarkSquare(i, ucRow, enResult[i]);
 		chr_x += GUESS_XSPC;
 	}
 }
