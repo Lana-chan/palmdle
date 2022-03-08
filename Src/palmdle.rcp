@@ -25,7 +25,7 @@ BEGIN
   END
 END
 
-FORM ID FormMain AT (2 2 156 156)
+FORM ID FormMain AT (0 0 160 160)
   NOFRAME USABLE
   NOSAVEBEHIND
   MENUID MenuMain
@@ -68,6 +68,22 @@ ALERT ID AlertNewDaily
 BEGIN
   TITLE "New daily available!"
   MESSAGE "There is a new daily challenge available.\nWould you like to play it now?"
+  BUTTONS "Yes" "No"
+END
+
+ALERT ID AlertAlreadyDaily
+  INFORMATION
+BEGIN
+  TITLE "Already played"
+  MESSAGE "You already played today's daily game, so we'll start a random one."
+  BUTTONS "Ok"
+END
+
+ALERT ID AlertForfeit
+  INFORMATION
+BEGIN
+  TITLE "Start new game?"
+  MESSAGE "You will forfeit the current game. Are you sure?"
   BUTTONS "Yes" "No"
 END
 

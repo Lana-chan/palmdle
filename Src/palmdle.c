@@ -8,7 +8,7 @@
 #define MAX_GUESS 6
 #define B26_LEN   2
 
-#define TBL_X  10        // left
+#define TBL_X  12        // left
 #define TBL_Y  25        // top
 #define TBL_CW 20        // cell width
 #define TBL_CH 17        // cell height
@@ -364,8 +364,8 @@ static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
 static void GameSubmitGuess(PalmdleVars* pstVars) {
 	PalmdleGame* pstGame = &pstVars->stGame;
 	if (pstGame->ucGuessCount < MAX_GUESS) {
-		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(FrmGetActiveForm(),
-			FrmGetObjectIndex(FrmGetActiveForm(), FieldInput));
+		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(pstVars->frmMain,
+			FrmGetObjectIndex(pstVars->frmMain, FieldInput));
 		char* szGuess = FldGetTextPtr(objGuess);
 
 		if (IsValidGuess(szGuess, pstVars)) {
@@ -431,6 +431,11 @@ static void PrefsSave(PalmdleVars* pstVars) {
 static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 	PalmdleGame* pstGame = &pstVars->stGame;
 
+	if (pstGame->enState != enNoGame) {
+		if (FrmAlert(AlertForfeit)) return;
+		MemSet(&pstVars->stGame, sizeof(PalmdleGame), 0);
+	}
+
 	if (!pstVars->fPrefsLoaded) {
 		PrefsLoad(pstVars);
 		pstVars->fPrefsLoaded = true;
@@ -444,9 +449,12 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 	DateType stDate;
 	DateSecondsToDate(TimGetSeconds(), &stDate);
 
-	if (DateToDays(stDate) - DateToDays(pstVars->pstPrefs->dateLastPlayed) < 1) {
+	if ((Int32)DateToDays(stDate) - (Int32)DateToDays(pstVars->pstPrefs->dateLastPlayed) < 1) {
 		// already played this game
-		fIsDaily = false;
+		if (fIsDaily && pstGame->enState == enNoGame) {
+			FrmAlert(AlertAlreadyDaily);
+			fIsDaily = false;
+		}
 	} else {
 		// new daily available
 		if (pstGame->enState != enNoGame) {
@@ -490,8 +498,11 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiAnswerIndex * (WORD_LEN), WORD_LEN);
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
-	StrPrintF(pstVars->szTitle, "Palmdle %d\0", pstGame->uiAnswerIndex);
-	FrmSetTitle(pstVars->frmMain, pstVars->szTitle);
+	if (pstGame->enState == enDailyGame) {
+		StrPrintF(pstVars->szTitle, "%d", pstGame->uiAnswerIndex);
+	} else {
+		StrPrintF(pstVars->szTitle, "Random");
+	}
 }
 
 /***************************
@@ -501,7 +512,9 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
  * Return     : none
  ***************************/
 static void GameUpdateScreen(PalmdleVars* pstVars) {
-	FrmDrawForm(FrmGetActiveForm());
+	FrmEraseForm(pstVars->frmMain);
+	FrmDrawForm(pstVars->frmMain);
+	WinDrawChars(pstVars->szTitle, strlen(pstVars->szTitle), 48, 2);
 	DrawGuessTable();
 	
 	int i;
@@ -595,7 +608,6 @@ static Boolean GameHandleEvent(EventType* event, PalmdleVars* pstVars) {
 					return true;
 
 				case MenuNewGame:
-					MemSet(&pstVars->stGame, sizeof(PalmdleGame), 0);
 					GameInit(pstVars, false);
 					GameUpdateScreen(pstVars);
 					return true;
