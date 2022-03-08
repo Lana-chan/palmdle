@@ -37,11 +37,31 @@ typedef enum {
 	enrCorrectLetter
 } GuessResult;
 
+typedef enum {
+	enNoGame = 0,
+	enDailyGame,
+	enUntrackedGame
+} PalmdleState;
+
 typedef struct t_PalmdleGame {
+	UInt16 uiAnswerIndex;                     // index of the answer
 	char szWord[WORD_LEN + 1];                // word to be guessed
 	char szGuesses[MAX_GUESS][WORD_LEN + 1];  // stores the play field
 	char szGuessedLetters[ALPHA_LEN];         // store which letters have already been guessed
 	UInt8 ucGuessCount;                       // number of current guess (starts at 0)
+	PalmdleState enState;                     // state of the game
+} PalmdleGame;
+
+typedef struct t_PalmdlePrefs {
+	DateType dateLastPlayed;                  // date which the last daily game was init
+	UInt16 uiStreak;                          // streak counter
+	UInt16 uiGamesWon;                        // total games won
+	UInt16 uiGamesPlayed;                     // total games played
+	PalmdleGame stSavedGame;                  // a saved game
+} PalmdlePrefs;
+
+typedef struct t_PalmdleVars {
+	PalmdleGame stGame;                       // game variables
 	MemPtr allowed_ptr;                       // dictionary list pointer
 	MemHandle allowed_hdl;                    // and handle
 	MemPtr allowed_idx_ptr;                   // dictionary index pointer
@@ -50,7 +70,10 @@ typedef struct t_PalmdleGame {
 	MemHandle answer_hdl;                     // and handle
 	Boolean boolHideLetters;                  // whether or not letters are to be hidden (share mode)
 	char szTitle[32];                         // form title (has day number)
-} PalmdleGame;
+	PalmdlePrefs* pstPrefs;                   // pointer to loaded preferences
+	Boolean fPrefsLoaded;                     // flag to only load prefs once
+	FormType* frmMain;                        // main game form
+} PalmdleVars;
 
 /***************************
  * Description: converts lower case char to upper case in place
@@ -113,11 +136,12 @@ static void DrawGuessTable(void) {
 
 /***************************
  * Description: draws the guessed letters
- * Input      : pstGame - game struct
+ * Input      : pstVars - vars struct
  * Output     : none
  * Return     : none
  ***************************/
-static void DrawGuessedLetters(PalmdleGame* pstGame) {
+static void DrawGuessedLetters(PalmdleVars* pstVars) {
+	PalmdleGame* pstGame = &pstVars->stGame;
 	unsigned int i;
 	unsigned char x = 0, y = 0;
 	char c;
@@ -131,7 +155,7 @@ static void DrawGuessedLetters(PalmdleGame* pstGame) {
 		//y = i % ALPHA_ROWS;
 		x = i % ALPHA_COLS;
 		c = pstGame->szGuessedLetters[i];
-		if (pstGame->boolHideLetters) c = ' ';
+		if (pstVars->boolHideLetters) c = ' ';
 		FntSetFont(stdFont);
 		if (c != ' ') {
 			if (cIsUpper(c)) FntSetFont(boldFont);
@@ -216,11 +240,12 @@ static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
 /***************************
  * Description: draws a guess word across a row of the play field, along with markers
  * Input      : ucRow - which row to draw
- *            : pstGame - game struct, new guess must already be populated
+ *            : pstVars - vars struct, new guess must already be populated
  * Output     : none
  * Return     : none
  ***************************/
-static void DrawGuess(UInt8 ucRow, PalmdleGame* pstGame) {
+static void DrawGuess(UInt8 ucRow, PalmdleVars* pstVars) {
+	PalmdleGame* pstGame = &pstVars->stGame;
 	if (!pstGame->szGuesses[ucRow][0]) return;
 
 	int chr_x = TBL_X + GUESS_XOFF;
@@ -235,7 +260,7 @@ static void DrawGuess(UInt8 ucRow, PalmdleGame* pstGame) {
 		cCurChar = pstGame->szGuesses[ucRow][i];
 		if (cCurChar == 0) cCurChar = (char)' ';
 		cToUpper(&cCurChar);
-		if (!pstGame->boolHideLetters) {
+		if (!pstVars->boolHideLetters) {
 			WinDrawChars(&cCurChar, 1, chr_x - (FntCharWidth(cCurChar) / 2), chr_y);
 		}
 
@@ -248,11 +273,11 @@ static void DrawGuess(UInt8 ucRow, PalmdleGame* pstGame) {
 /***************************
  * Description: determines if an input is a valid palmdle guess
  * Input      : szGuess - string to check against
- *            : pstGame - game struct
+ *            : pstVars - vars struct
  * Output     : none
  * Return     : true or false
  ***************************/
-Boolean IsValidGuess(const char* szGuess, PalmdleGame* pstGame) {
+Boolean IsValidGuess(const char* szGuess, PalmdleVars* pstVars) {
 	if (StrLen(szGuess) != WORD_LEN) return false;
 
 	unsigned int i;
@@ -279,15 +304,15 @@ Boolean IsValidGuess(const char* szGuess, PalmdleGame* pstGame) {
 
 	unsigned int uiGuessIndex = 0;
 	for (i = 0; i < uiGuessPrefix; i++) {
-		uiGuessIndex += *(unsigned char*)(pstGame->allowed_idx_ptr + i);
+		uiGuessIndex += *(unsigned char*)(pstVars->allowed_idx_ptr + i);
 	}
 
 	for (i = 0; i < ANSWER_COUNT; i++) {
-		if (!MemCmp(szUpperGuess, pstGame->answer_ptr + (i * WORD_LEN), WORD_LEN)) return true;
+		if (!MemCmp(szUpperGuess, pstVars->answer_ptr + (i * WORD_LEN), WORD_LEN)) return true;
 	}
 
-	for (i = 0; i < *(unsigned char*)(pstGame->allowed_idx_ptr + uiGuessPrefix); i++) {
-		if (!MemCmp(ucGuess, pstGame->allowed_ptr + ((i + uiGuessIndex) * B26_LEN), B26_LEN)) return true;
+	for (i = 0; i < *(unsigned char*)(pstVars->allowed_idx_ptr + uiGuessPrefix); i++) {
+		if (!MemCmp(ucGuess, pstVars->allowed_ptr + ((i + uiGuessIndex) * B26_LEN), B26_LEN)) return true;
 	}
 	
 	return false;
@@ -316,30 +341,33 @@ static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
 
 /***************************
  * Description: uses form guess field to process and populate next guess in game
- * Input      : pstGame - game struct
+ * Input      : pstVars - vars struct
  * Output     : none
  * Return     : none
  ***************************/
-static void GameSubmitGuess(PalmdleGame* pstGame) {
+static void GameSubmitGuess(PalmdleVars* pstVars) {
+	PalmdleGame* pstGame = &pstVars->stGame;
 	if (pstGame->ucGuessCount < MAX_GUESS) {
 		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(FrmGetActiveForm(),
 			FrmGetObjectIndex(FrmGetActiveForm(), FieldInput));
 		char* szGuess = FldGetTextPtr(objGuess);
 
-		if (IsValidGuess(szGuess, pstGame)) {
+		if (IsValidGuess(szGuess, pstVars)) {
 			// add guess to board
 			MemMove(pstGame->szGuesses[pstGame->ucGuessCount], szGuess, WORD_LEN+1);
-			DrawGuess(pstGame->ucGuessCount, pstGame);
+			DrawGuess(pstGame->ucGuessCount, pstVars);
 			pstGame->ucGuessCount++;
 
-			DrawGuessedLetters(pstGame);
+			DrawGuessedLetters(pstVars);
 
 			// check if game has been lost or won
 			if (CaselessCompare(szGuess, pstGame->szWord, WORD_LEN)) {
 				FrmAlert(AlertWin);
 				pstGame->ucGuessCount = MAX_GUESS;
+				pstGame->enState = enNoGame;
 			} else if (pstGame->ucGuessCount == MAX_GUESS) {
 				FrmCustomAlert(AlertLose, pstGame->szWord, "", "");
+				pstGame->enState = enNoGame;
 			}
 
 			// erase guess field
@@ -355,53 +383,95 @@ static void GameSubmitGuess(PalmdleGame* pstGame) {
 }
 
 /***************************
- * Description: initialize game struct
- * Input      : pstGame - game struct
+ * Description: load the game preferences
+ * Input      : pstVars - vars struct
  * Output     : none
  * Return     : none
  ***************************/
-static void GameInit(PalmdleGame* pstGame) {
-	MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
+static void PrefsLoad(PalmdleVars* pstVars) {
+	if (!PrefGetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs))) {
+		MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
+	}
+}
 
-	DateType stDate;
-	DateSecondsToDate(TimGetSeconds(), &stDate);
+/***************************
+ * Description: save the game preferences
+ * Input      : pstVars - vars struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void PrefsSave(PalmdleVars* pstVars) {
+	MemMove(&pstVars->pstPrefs->stSavedGame, &pstVars->stGame, sizeof(PalmdleGame));
+	PrefSetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs));
+}
 
-	DateType stBaseDate;
-	MemSet(&stBaseDate, sizeof(DateType), 0);
-	stBaseDate.year = 2021 - 1904;
-	stBaseDate.month = 6;
-	stBaseDate.day = 19;
+/***************************
+ * Description: initialize game struct
+ * Input      : pstVars - vars struct
+ *            : fIsDaily - are we initing a daily game or a random game?
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
+	PalmdleGame* pstGame = &pstVars->stGame;
 
-	UInt16 uiDateDifference = (DateToDays(stDate) - DateToDays(stBaseDate));
-	UInt16 uiAnswerIndex = uiDateDifference % ANSWER_COUNT;
+	if (!pstVars->fPrefsLoaded) {
+		PrefsLoad(pstVars);
+	
+		if (pstVars->pstPrefs->stSavedGame.enState != enNoGame) {
+			// there's a game saved, restore it
+			MemMove(pstGame, &pstVars->pstPrefs->stSavedGame, sizeof(PalmdleGame));
+		} 
+	}
 
-	MemMove(pstGame->szWord, pstGame->answer_ptr + uiAnswerIndex * (WORD_LEN), WORD_LEN);
+	if (pstGame->enState == enNoGame) {
+		// new game
+		if (fIsDaily) {
+			DateType stDate;
+			DateSecondsToDate(TimGetSeconds(), &stDate);
+
+			DateType stBaseDate;
+			MemSet(&stBaseDate, sizeof(DateType), 0);
+			stBaseDate.year = 2021 - 1904;
+			stBaseDate.month = 6;
+			stBaseDate.day = 19;
+
+			UInt16 uiDateDifference = (DateToDays(stDate) - DateToDays(stBaseDate));
+			pstGame->uiAnswerIndex = uiDateDifference % ANSWER_COUNT;
+			
+			pstGame->ucGuessCount = 0;
+			StrPrintF(pstGame->szGuessedLetters, ALPHABET);
+			MemSet(pstGame->szGuesses, sizeof(pstGame->szGuesses), 0);
+
+			pstGame->enState = enDailyGame;
+		} else {
+			// random index game
+		}
+	}
+
+	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiAnswerIndex * (WORD_LEN), WORD_LEN);
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
-	pstGame->ucGuessCount = 0;
-
-	StrPrintF(pstGame->szGuessedLetters, ALPHABET);
-
-	StrPrintF(pstGame->szTitle, "Palmdle %d\0", uiAnswerIndex);
-	FrmSetTitle(FrmGetActiveForm(), pstGame->szTitle);
+	StrPrintF(pstVars->szTitle, "Palmdle %d\0", pstGame->uiAnswerIndex);
+	FrmSetTitle(pstVars->frmMain, pstVars->szTitle);
 }
 
 /***************************
  * Description: redraw the current form and the entire game field
- * Input      : pstGame - game struct
+ * Input      : pstVars - vars struct
  * Output     : none
  * Return     : none
  ***************************/
-static void GameUpdateScreen(PalmdleGame* pstGame) {
+static void GameUpdateScreen(PalmdleVars* pstVars) {
 	FrmDrawForm(FrmGetActiveForm());
 	DrawGuessTable();
 	
 	int i;
 	for (i = 0; i < MAX_GUESS; i++) {
-		DrawGuess(i, pstGame);
+		DrawGuess(i, pstVars);
 	}
 
-	DrawGuessedLetters(pstGame);
+	DrawGuessedLetters(pstVars);
 }
 
 /***************************
@@ -438,40 +508,40 @@ static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID) {
 
 /***************************
  * Description: toggle whether letters are hidden for sharing
- * Input      : pstGame - game struct
+ * Input      : pstVars - vars struct
  * Output     : none
  * Return     : none
  ***************************/
-static void ToggleHideLetters(PalmdleGame* pstGame) {
-	pstGame->boolHideLetters = !pstGame->boolHideLetters;
-	GameUpdateScreen(pstGame);
+static void ToggleHideLetters(PalmdleVars* pstVars) {
+	pstVars->boolHideLetters = !pstVars->boolHideLetters;
+	GameUpdateScreen(pstVars);
 }
 
 /***************************
  * Description: event handler for main form
  * Input      : event - data to be handled
- *            : pstGame - game struct
+ *            : pstVars - vars struct
  * Output     : none
  * Return     : true if event was handled
  ***************************/
-static Boolean GameHandleEvent(EventType* event, PalmdleGame* pstGame) {
+static Boolean GameHandleEvent(EventType* event, PalmdleVars* pstVars) {
 	switch (event->eType) {
 		case frmOpenEvent:
 		case frmGotoEvent:
 		case frmUpdateEvent:
-			GameUpdateScreen(pstGame);
+			GameUpdateScreen(pstVars);
 			return true;
 
 		case keyDownEvent:
 			if (event->data.keyDown.chr == (WChar)'\n') {
-				GameSubmitGuess(pstGame);
+				GameSubmitGuess(pstVars);
 				return true;
 			}
 			break;
 
 		case ctlSelectEvent:
 			if (event->data.ctlSelect.controlID == ButtonOK) {
-				GameSubmitGuess(pstGame);
+				GameSubmitGuess(pstVars);
 				return true;
 			}
 			break;
@@ -485,10 +555,15 @@ static Boolean GameHandleEvent(EventType* event, PalmdleGame* pstGame) {
 				case MenuHelp:
 					ShowDialogForm(FrmGetActiveForm(), FormHelp);
 					return true;
+
+				case MenuNewGame:
+					MemSet(&pstVars->stGame, sizeof(PalmdleGame), 0);
+					PrefsSave(pstVars);
+					return true;
 					
 				case MenuHideLetters:
-					ToggleHideLetters(pstGame);
-					break;
+					ToggleHideLetters(pstVars);
+					return true;
 			}
 			break;
 
@@ -507,29 +582,34 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FormType* frmMain = FrmInitForm(FormMain);
 		FrmSetActiveForm(frmMain);
 
-		PalmdleGame* pstGame = (PalmdleGame*)MemPtrNew(sizeof(PalmdleGame));
-		if ((UInt32)pstGame == 0) return -1;
-		MemSet(pstGame, sizeof(PalmdleGame), 0);
-
-		pstGame->allowed_hdl = DmGet1Resource(0x776f7264, AllowedListFile);
-		pstGame->allowed_ptr = MemHandleLock(pstGame->allowed_hdl);
-		if((UInt32)pstGame->allowed_ptr == 0) return -1;
-
-		pstGame->allowed_idx_hdl = DmGet1Resource(0x776f7264, AllowedIndexFile);
-		pstGame->allowed_idx_ptr = MemHandleLock(pstGame->allowed_idx_hdl);
-		if((UInt32)pstGame->allowed_idx_ptr == 0) return -1;
-
-		pstGame->answer_hdl = DmGet1Resource(0x776f7264, AnswerListFile);
-		pstGame->answer_ptr = MemHandleLock(pstGame->answer_hdl);
-		if((UInt32)pstGame->answer_ptr == 0) return -1;
+		PalmdleVars* pstVars = (PalmdleVars*)MemPtrNew(sizeof(PalmdleVars));
+		if ((UInt32)pstVars == 0) return -1;
+		MemSet(pstVars, sizeof(PalmdleVars), 0);
+		pstVars->frmMain = frmMain;
 		
-		GameInit(pstGame);
-		GameUpdateScreen(pstGame);
+		pstVars->pstPrefs = (PalmdlePrefs*)MemPtrNew(sizeof(PalmdlePrefs));
+		if ((UInt32)pstVars->pstPrefs == 0) return -1;
+		MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
+
+		pstVars->allowed_hdl = DmGet1Resource(0x776f7264, AllowedListFile);
+		pstVars->allowed_ptr = MemHandleLock(pstVars->allowed_hdl);
+		if((UInt32)pstVars->allowed_ptr == 0) return -1;
+
+		pstVars->allowed_idx_hdl = DmGet1Resource(0x776f7264, AllowedIndexFile);
+		pstVars->allowed_idx_ptr = MemHandleLock(pstVars->allowed_idx_hdl);
+		if((UInt32)pstVars->allowed_idx_ptr == 0) return -1;
+
+		pstVars->answer_hdl = DmGet1Resource(0x776f7264, AnswerListFile);
+		pstVars->answer_ptr = MemHandleLock(pstVars->answer_hdl);
+		if((UInt32)pstVars->answer_ptr == 0) return -1;
+		
+		GameInit(pstVars, true);
+		GameUpdateScreen(pstVars);
 
 		do {
 			EvtGetEvent(&event, evtWaitForever);
 			
-			if (GameHandleEvent(&event, pstGame))
+			if (GameHandleEvent(&event, pstVars))
 				continue;
 
 			if (SysHandleEvent(&event))
@@ -545,13 +625,16 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		FrmSetActiveForm(NULL);
 		FrmDeleteForm(frmMain);
 
-		MemHandleUnlock(pstGame->allowed_hdl);
-		DmReleaseResource(pstGame->allowed_hdl);
-		MemHandleUnlock(pstGame->allowed_idx_hdl);
-		DmReleaseResource(pstGame->allowed_idx_hdl);
-		MemHandleUnlock(pstGame->answer_hdl);
-		DmReleaseResource(pstGame->answer_hdl);
-		MemPtrFree((MemPtr)pstGame);
+		PrefsSave(pstVars);
+
+		MemHandleUnlock(pstVars->allowed_hdl);
+		DmReleaseResource(pstVars->allowed_hdl);
+		MemHandleUnlock(pstVars->allowed_idx_hdl);
+		DmReleaseResource(pstVars->allowed_idx_hdl);
+		MemHandleUnlock(pstVars->answer_hdl);
+		DmReleaseResource(pstVars->answer_hdl);
+		MemPtrFree((MemPtr)pstVars->pstPrefs);
+		MemPtrFree((MemPtr)pstVars);
 	}
 
 	return 0;

@@ -13,10 +13,13 @@ MENU ID MenuMain
 BEGIN
   PULLDOWN "Game"
   BEGIN
-    MENUITEM "Toggle Hide letters" ID MenuHideLetters "L"
+    MENUITEM "New random game" ID MenuNewGame "N"
+    MENUITEM "Stats..." ID MenuStats "S"
   END
   PULLDOWN "Options"
   BEGIN
+    MENUITEM "Toggle hide letters" ID MenuHideLetters "L"
+    MENUITEM SEPARATOR
     MENUITEM "Help" ID MenuHelp "H"
     MENUITEM "About..." ID MenuAbout
   END
