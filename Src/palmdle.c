@@ -531,6 +531,8 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiAnswerIndex * (WORD_LEN), WORD_LEN);
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
+	pstVars->boolHideLetters = false;
+
 	if (pstGame->enState == enDailyGame) {
 		StrPrintF(pstVars->szTitle, "%d", pstGame->uiAnswerIndex);
 	} else {
@@ -557,6 +559,10 @@ static void GameUpdateScreen(PalmdleVars* pstVars) {
 	}
 
 	DrawGuessedLetters(pstVars);
+
+	FieldType* objGuess = (FieldType*)FrmGetObjectPtr(pstVars->frmMain,
+		FrmGetObjectIndex(pstVars->frmMain, FieldInput));
+	FldGrabFocus(objGuess);
 }
 
 /***************************
