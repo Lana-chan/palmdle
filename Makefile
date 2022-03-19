@@ -37,10 +37,10 @@ $(TARGET).prc: code0001.bin
 %.elf: $(OBJS)
 	$(LD) -o $@ $(LDFLAGS) $^
 
-%.o : %.c Src/wordlists.h
+%.o : %.c Src/allowedlist.bin
 	$(CC) $(CCFLAGS) $(INCS) -c $< -o $@
 
-Src/wordlists.h:
+Src/allowedlist.bin:
 	python3 scripts/generate_wordlist.py
 
 clean:
