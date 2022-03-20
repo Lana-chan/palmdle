@@ -413,7 +413,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			MemHandleUnlock(pTextH);
 			FldSetTextHandle(objGuess, pTextH);
 			FldDrawField(objGuess);
-			FldGrabFocus(objGuess);
+			FrmSetFocus(pstVars->frmMain, FrmGetObjectIndex(pstVars->frmMain, FieldInput));
 		}
 	}
 }
@@ -560,9 +560,7 @@ static void GameUpdateScreen(PalmdleVars* pstVars) {
 
 	DrawGuessedLetters(pstVars);
 
-	FieldType* objGuess = (FieldType*)FrmGetObjectPtr(pstVars->frmMain,
-		FrmGetObjectIndex(pstVars->frmMain, FieldInput));
-	FldGrabFocus(objGuess);
+	FrmSetFocus(pstVars->frmMain, FrmGetObjectIndex(pstVars->frmMain, FieldInput));
 }
 
 /***************************
