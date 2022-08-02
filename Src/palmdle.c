@@ -8,7 +8,7 @@
 #define MAX_GUESS 6
 #define B26_LEN   2
 
-#define TBL_X  12        // left
+#define TBL_X  10        // left
 #define TBL_Y  25        // top
 #define TBL_CW 20        // cell width
 #define TBL_CH 17        // cell height
@@ -17,14 +17,15 @@
 #define TBL_W (TBL_CW * TBL_C)  // total width
 #define TBL_H (TBL_CH * TBL_R)  // total height
 
-#define ALPHABET    "abcdefghijklmnopqrstuvwxyz"
-#define ALPHA_LEN   26
-#define ALPHA_ROWS  9
-#define ALPHA_COLS  3
-#define ALPHA_X    (TBL_X + TBL_W + 13)
-#define ALPHA_Y     23
-#define ALPHA_X_STP 10
-#define ALPHA_Y_STP 12
+#define ALPHABET       "abcdefghijklmnopqrstuvwxyz"
+#define ALPHA_LEN       26
+#define ALPHA_ROWS      9
+#define ALPHA_COLS      3
+#define ALPHA_X        (TBL_X + TBL_W + 15)
+#define ALPHA_Y         23
+#define ALPHA_X_STEP    10
+#define ALPHA_Y_STEP    12
+#define ALPHA_X_CENTER (TBL_X + TBL_W + 25)
 
 #define GUESS_XSPC TBL_CW
 #define GUESS_YSPC TBL_CH
@@ -137,6 +138,27 @@ static void DrawGuessTable(void) {
 }
 
 /***************************
+ * Description: empties the area with the guessed letters
+ * Input      : none
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void EmptyGuessedLetters() {
+	RectangleType pRect;
+
+	CustomPatternType ptBlank;
+	MemSet(&ptBlank, sizeof(CustomPatternType), 0);
+	WinSetPattern(&ptBlank);
+
+	RctSetRectangle(&pRect,
+		ALPHA_X,
+		ALPHA_Y,
+		ALPHA_X + (ALPHA_COLS * ALPHA_X_STEP),
+		ALPHA_Y + (ALPHA_ROWS * ALPHA_Y_STEP));
+	WinFillRectangle(&pRect, 0);
+}
+
+/***************************
  * Description: draws the guessed letters
  * Input      : pstVars - vars struct
  * Output     : none
@@ -157,26 +179,65 @@ static void DrawGuessedLetters(PalmdleVars* pstVars) {
 		//y = i % ALPHA_ROWS;
 		x = i % ALPHA_COLS;
 		c = pstGame->szGuessedLetters[i];
-		if (pstVars->boolHideLetters) c = ' ';
 		FntSetFont(stdFont);
 		if (c != ' ') {
 			if (cIsUpper(c)) FntSetFont(boldFont);
 			cToUpper(&c);
 			WinDrawChars(&c, 1,
-				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
-				ALPHA_Y + (y * ALPHA_Y_STP));
+				ALPHA_X + (x * ALPHA_X_STEP) - (FntCharWidth(c) / 2),
+				ALPHA_Y + (y * ALPHA_Y_STEP));
 		} else {
 			c = (char)'A' + i;
 			FntSetFont(boldFont);
 			RctSetRectangle(&pRect,
-				ALPHA_X + (x * ALPHA_X_STP) - (FntCharWidth(c) / 2),
-				ALPHA_Y + (y * ALPHA_Y_STP),
+				ALPHA_X + (x * ALPHA_X_STEP) - (FntCharWidth(c) / 2),
+				ALPHA_Y + (y * ALPHA_Y_STEP),
 				FntCharWidth(c),
 				FntCharHeight());
 			WinFillRectangle(&pRect, 0);
 		}
 		//if (!((i + 1) % ALPHA_ROWS)) x += 1;
 		if (!((i + 1) % ALPHA_COLS)) y += 1;
+	}
+}
+
+/***************************
+ * Description: draws the stats in place of the guessed letters
+ * Input      : pstVars - vars struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void DrawStatsBoard(PalmdleVars* pstVars) {
+	char szLabels[4][10];
+	char szVals[4][8];
+
+	FntSetFont(boldFont);
+	int x = 0;
+	int y = ALPHA_Y + 4;
+
+	StrPrintF(szLabels[0], "Played");
+	StrPrintF(szVals[0], "%d", pstVars->pstPrefs->uiGamesPlayed);
+	StrPrintF(szLabels[1], "Won");
+	StrPrintF(szVals[1], "%d", pstVars->pstPrefs->uiGamesWon);
+	StrPrintF(szLabels[2], "Streak");
+	StrPrintF(szVals[2], "%d", pstVars->pstPrefs->uiStreak);
+	StrPrintF(szLabels[3], "Max str.");
+	StrPrintF(szVals[3], "%d", pstVars->pstPrefs->uiMaxStreak);
+
+	for (int i = 0; i < 4; i++) {
+		FntSetFont(boldFont);
+		x = ALPHA_X_CENTER - (FntLineWidth(szLabels[i], StrLen(szLabels[i])) / 2);
+		WinDrawChars(szLabels[i], StrLen(szLabels[i]),
+			x,
+			y);
+		y += FntLineHeight();
+
+		FntSetFont(stdFont);
+		x = ALPHA_X_CENTER - (FntLineWidth(szVals[i], StrLen(szVals[i])) / 2);
+		WinDrawChars(szVals[i], StrLen(szVals[i]),
+			x,
+			y);
+		y += FntLineHeight() + 4;
 	}
 }
 
@@ -558,7 +619,11 @@ static void GameUpdateScreen(PalmdleVars* pstVars) {
 		DrawGuess(i, pstVars);
 	}
 
-	DrawGuessedLetters(pstVars);
+	if (pstVars->boolHideLetters) {
+		DrawStatsBoard(pstVars);
+	} else {
+		DrawGuessedLetters(pstVars);
+	}
 
 	FrmSetFocus(pstVars->frmMain, FrmGetObjectIndex(pstVars->frmMain, FieldInput));
 }
@@ -685,6 +750,7 @@ static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID) {
  ***************************/
 static void ToggleHideLetters(PalmdleVars* pstVars) {
 	pstVars->boolHideLetters = !pstVars->boolHideLetters;
+	//EmptyGuessedLetters();
 	GameUpdateScreen(pstVars);
 }
 
