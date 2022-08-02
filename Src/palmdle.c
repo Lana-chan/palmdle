@@ -425,6 +425,9 @@ static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
  ***************************/
 static void GameSubmitGuess(PalmdleVars* pstVars) {
 	PalmdleGame* pstGame = &pstVars->stGame;
+
+	if (pstVars->boolHideLetters) return;
+
 	if (pstGame->ucGuessCount < MAX_GUESS) {
 		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(pstVars->frmMain,
 			FrmGetObjectIndex(pstVars->frmMain, FieldInput));
