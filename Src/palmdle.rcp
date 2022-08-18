@@ -8,7 +8,7 @@ DATA "word" ID AllowedIndexFile "allowedindex.bin"
 DATA "word" ID AnswerListFile "answerlist.bin"
 
 VERSION "1.3"
-ICON "assets/icon1bpp.bmp"
+ICON "assets/icon1bpp.bmp" "" "" "assets/icon8bpp.bmp" TRANSPARENT 254 0 254
 LAUNCHERCATEGORY "Games"
 
 MENU ID MenuMain
@@ -109,8 +109,18 @@ BEGIN
   BUTTON "OK" ID ButtonDialog AT (CENTER BOTTOM@120 AUTO AUTO)
 END
 
-BITMAP ID BitmapWrong "assets/wrongpos1bpp.bmp"
-BITMAP ID BitmapCorrect "assets/correctletter1bpp.bmp"
+BITMAP ID BitmapWrong
+COMPRESS
+BEGIN
+    BITMAP "assets/wrongpos1bpp.bmp" BPP 1 
+    BITMAP "assets/wrongpos8bpp.bmp" BPP 8 DENSITY 72 TRANSPARENT 255 0 255
+END
+BITMAP ID BitmapCorrect
+COMPRESS
+BEGIN
+    BITMAP "assets/correctletter1bpp.bmp" BPP 1 
+    BITMAP "assets/correctletter8bpp.bmp" BPP 8 DENSITY 72 TRANSPARENT 255 0 255
+END
 
 FORM ID FormHelp AT (10 10 140 140)
   MODAL

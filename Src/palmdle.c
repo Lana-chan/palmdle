@@ -33,6 +33,9 @@
 #define GUESS_XOFF (GUESS_XSPC / 2)
 #define GUESS_YOFF 2
 
+#define COLOR_YELLOW 115
+#define COLOR_GREEN  211
+
 typedef enum {
 	enrWrongLetter = 0,
 	enrWrongPosition,
@@ -77,6 +80,7 @@ typedef struct t_PalmdleVars {
 	PalmdlePrefs* pstPrefs;                   // pointer to loaded preferences
 	Boolean fPrefsLoaded;                     // flag to only load prefs once
 	FormType* frmMain;                        // main game form
+	UInt8 ucDisplayDepth;                     // detected display depth
 } PalmdleVars;
 
 /***************************
@@ -294,7 +298,7 @@ static void DetermineResult(GuessResult* penResult, const char* szGuess, const c
  * Output     : none
  * Return     : none
  ***************************/
-static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
+static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult, Boolean fColor) {
 	RectangleType pRect;
 	RctSetRectangle(&pRect,
 		TBL_X + (ucColumn * TBL_CW) + 3,
@@ -302,17 +306,36 @@ static void MarkSquare(UInt8 ucColumn, UInt8 ucRow, GuessResult enResult) {
 		TBL_CW - 5,
 		TBL_CH - 5);
 
+	if (fColor) {
+		WinPushDrawState();
+		WinSetDrawMode(winPaint);
+	}
+
 	switch (enResult) {
 		case enrWrongLetter:
-			return;
+			break;
 
 		case enrWrongPosition:
-			WinDrawGrayRectangleFrame(boldRoundFrame, &pRect);
+			if (fColor) {
+				WinSetBackColor(COLOR_YELLOW); // yellow
+				WinPaintRectangleFrame(boldRoundFrame, &pRect);
+			} else {
+				WinDrawGrayRectangleFrame(boldRoundFrame, &pRect);
+			}
 			break;
 		
 		case enrCorrectLetter:
-			WinDrawRectangleFrame(boldRoundFrame, &pRect);
+			if (fColor) {
+				WinSetBackColor(COLOR_GREEN); // yellow
+				WinPaintRectangleFrame(boldRoundFrame, &pRect);
+			} else {
+				WinDrawRectangleFrame(boldRoundFrame, &pRect);
+			}
 			break;
+	}
+
+	if (fColor) {
+		WinPopDrawState();
 	}
 }
 
@@ -344,7 +367,7 @@ static void DrawGuess(UInt8 ucRow, PalmdleVars* pstVars) {
 			WinDrawChars(&cCurChar, 1, chr_x - (FntCharWidth(cCurChar) / 2), chr_y);
 		}
 
-		MarkSquare(i, ucRow, enResult[i]);
+		MarkSquare(i, ucRow, enResult[i], (pstVars->ucDisplayDepth >= 8));
 		chr_x += GUESS_XSPC;
 	}
 }
@@ -433,6 +456,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 		FieldType* objGuess = (FieldType*)FrmGetObjectPtr(pstVars->frmMain,
 			FrmGetObjectIndex(pstVars->frmMain, FieldInput));
 		char* szGuess = FldGetTextPtr(objGuess);
+		if (szGuess == NULL || strlen(szGuess) < 5) return;
 
 		if (IsValidGuess(szGuess, pstVars)) {
 			// add guess to board
@@ -848,6 +872,11 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		pstVars->answer_ptr = MemHandleLock(pstVars->answer_hdl);
 		if((UInt32)pstVars->answer_ptr == 0) return -1;
 		
+		// store device screen depth
+		UInt32 ulDisplayDepth = 0;
+		FtrGet(sysFtrCreator, sysFtrNumDisplayDepth, &ulDisplayDepth);
+		pstVars->ucDisplayDepth = (UInt8)ulDisplayDepth;
+
 		GameInit(pstVars, true);
 		GameUpdateScreen(pstVars);
 
