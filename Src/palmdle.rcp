@@ -1,4 +1,5 @@
 #include "resID.h"
+#include "strings.h"
 
 DATA "code" ID 1 "code0001.bin"
 
@@ -6,23 +7,23 @@ DATA "word" ID AllowedListFile "allowedlist.bin"
 DATA "word" ID AllowedIndexFile "allowedindex.bin"
 DATA "word" ID AnswerListFile "answerlist.bin"
 
-VERSION "1.2"
-ICON "icon1bpp.bmp"
+VERSION "1.3"
+ICON "assets/icon1bpp.bmp"
 LAUNCHERCATEGORY "Games"
 
 MENU ID MenuMain
 BEGIN
-  PULLDOWN "Game"
+  PULLDOWN MENU_GAME
   BEGIN
-    MENUITEM "New random game" ID MenuNewGame "N"
-    MENUITEM "Stats..." ID MenuStats "S"
+    MENUITEM MENU_GAME_NEW ID MenuNewGame "N"
+    MENUITEM MENU_GAME_STATS ID MenuStats "S"
   END
-  PULLDOWN "Options"
+  PULLDOWN MENU_OPTIONS
   BEGIN
-    MENUITEM "Toggle hide letters" ID MenuHideLetters "L"
+    MENUITEM MENU_OPTIONS_HIDE ID MenuHideLetters "L"
     MENUITEM SEPARATOR
-    MENUITEM "Help" ID MenuHelp "H"
-    MENUITEM "About..." ID MenuAbout
+    MENUITEM MENU_OPTIONS_HELP ID MenuHelp "H"
+    MENUITEM MENU_OPTIONS_ABOUT ID MenuAbout
   END
 END
 
@@ -31,11 +32,11 @@ FORM ID FormMain AT (0 0 160 160)
   NOSAVEBEHIND
   MENUID MenuMain
 BEGIN
-  TITLE "Palmdle"
+  TITLE GAME_TITLE
 
-  LABEL "Guess:" AUTOID AT (25 BOTTOM@150) FONT 1
+  LABEL GUESS_PROMPT AUTOID AT (25 BOTTOM@150) FONT 1
   FIELD ID FieldInput AT (PREVRIGHT+5 PREVTOP 40 AUTO) EDITABLE UNDERLINED MAXCHARS 5
-  BUTTON "OK" ID ButtonOK AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
+  BUTTON GUESS_SUBMIT ID ButtonOK AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
 
   GRAFFITISTATEINDICATOR AT (140 140)
 END
@@ -45,7 +46,7 @@ ALERT ID AlertDebug
 BEGIN
   TITLE "Debug"
   MESSAGE "^1"
-  BUTTONS "Ok"
+  BUTTONS "But_Ok"
 END
 
 ALERT ID AlertWin
@@ -59,68 +60,68 @@ END
 ALERT ID AlertLose
   INFORMATION
 BEGIN
-  TITLE "Sorry!"
-  MESSAGE "You ran out of guesses.\nThe word was: ^1"
+  TITLE ALERT_WIN_TITLE
+  MESSAGE ALERT_WIN_MSG
   BUTTONS "Ok"
 END
 
 ALERT ID AlertNewDaily
   CONFIRMATION
 BEGIN
-  TITLE "New daily available!"
-  MESSAGE "There is a new daily challenge available.\nWould you like to play it now?"
+  TITLE ALERT_NEW_TITLE
+  MESSAGE ALERT_NEW_MSG
   BUTTONS "Yes" "No"
 END
 
 ALERT ID AlertAlreadyDaily
   INFORMATION
 BEGIN
-  TITLE "Already played"
-  MESSAGE "You already played today's daily game, so we'll start a random one."
+  TITLE ALERT_ALREADY_TITLE
+  MESSAGE ALERT_ALREADY_MSG
   BUTTONS "Ok"
 END
 
 ALERT ID AlertForfeit
   CONFIRMATION
 BEGIN
-  TITLE "Start new game?"
-  MESSAGE "You will forfeit the current game. Are you sure?"
+  TITLE ALERT_FORFEIT_TITLE
+  MESSAGE ALERT_FORFEIT_MSG
   BUTTONS "Yes" "No"
 END
 
 ALERT ID AlertDelete
   WARNING
 BEGIN
-  TITLE "Delete all stats?"
-  MESSAGE "You will lose all your current Palmdle data. Are you sure?"
+  TITLE ALERT_DELETE_TITLE
+  MESSAGE ALERT_DELETE_MSG
   BUTTONS "Yes" "No"
 END
 
-BITMAP ID MapleBitmap "maple.bmp"
+BITMAP ID MapleBitmap "assets/maple.bmp"
 
 FORM ID FormAbout AT (10 10 140 130)
   MODAL
 BEGIN
   FORMBITMAP AT (CENTER@50 10) BITMAP MapleBitmap
-  LABEL "Palmdle v1.2" AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
+  LABEL ABOUT_TITLE AUTOID AT (CENTER PREVBOTTOM+25) FONT 1
   LABEL "made by maple \"mavica\" syrup" AUTOID AT (CENTER PREVBOTTOM+5)
   LABEL "https://maple.pet" AUTOID AT (CENTER PREVBOTTOM+5)
   BUTTON "OK" ID ButtonDialog AT (CENTER BOTTOM@120 AUTO AUTO)
 END
 
-BITMAP ID BitmapWrong "wrongpos1bpp.bmp"
-BITMAP ID BitmapCorrect "correctletter1bpp.bmp"
+BITMAP ID BitmapWrong "assets/wrongpos1bpp.bmp"
+BITMAP ID BitmapCorrect "assets/correctletter1bpp.bmp"
 
 FORM ID FormHelp AT (10 10 140 140)
   MODAL
 BEGIN
-  LABEL "Guess a new five-letter" AUTOID AT (CENTER 6)
-  LABEL "word each day in six tries." AUTOID AT (CENTER PREVBOTTOM)
-  LABEL "Each guess must be a valid word," AUTOID AT (CENTER PREVBOTTOM+4)
-  LABEL "hit OK or Enter to submit." AUTOID AT (CENTER PREVBOTTOM)
-  LABEL "After each guess, the letters" AUTOID AT (CENTER PREVBOTTOM+4)
-  LABEL "will be marked to show how" AUTOID AT (CENTER PREVBOTTOM)
-  LABEL "close your guess was." AUTOID AT (CENTER PREVBOTTOM)
+  LABEL HELP_1 AUTOID AT (CENTER 6)
+  LABEL HELP_2 AUTOID AT (CENTER PREVBOTTOM)
+  LABEL HELP_3 AUTOID AT (CENTER PREVBOTTOM+4)
+  LABEL HELP_4 AUTOID AT (CENTER PREVBOTTOM)
+  LABEL HELP_5 AUTOID AT (CENTER PREVBOTTOM+4)
+  LABEL HELP_6 AUTOID AT (CENTER PREVBOTTOM)
+  LABEL HELP_7 AUTOID AT (CENTER PREVBOTTOM)
   BUTTON "OK" ID ButtonDialog AT (CENTER 120 AUTO AUTO)
   FORMBITMAP AT (10 BOTTOM@115) BITMAP BitmapWrong
   FORMBITMAP AT (98 BOTTOM@115) BITMAP BitmapCorrect
@@ -129,8 +130,15 @@ END
 FORM ID FormStats AT (10 10 140 100)
   MODAL
 BEGIN
-  LABEL "Your Palmdle Stats" AUTOID AT (CENTER 6) FONT 1
+  LABEL STATS_TITLE AUTOID AT (CENTER 6) FONT 1
   TABLE ID TableStats AT (CENTER PREVBOTTOM+5 120 48) ROWS 4 COLUMNS 2 COLUMNWIDTHS 70 50
-  BUTTON "OK" ID ButtonDialog AT (10 BOTTOM@90 AUTO AUTO)
-  BUTTON "Delete all stats" ID ButtonDelete AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
+  BUTTON STATS_OK ID ButtonDialog AT (10 BOTTOM@90 AUTO AUTO)
+  BUTTON STATS_DELETE ID ButtonDelete AT (PREVRIGHT+5 PREVTOP AUTO AUTO)
+END
+
+TRANSLATION "ENGLISH"
+BEGIN
+  "But_Ok" = DIALOG_OK
+  "But_Yes" = DIALOG_YES
+  "But_No" = DIALOG_NO
 END

@@ -29,7 +29,7 @@ INCS			+=	-isystem$(SDK)/Libraries/PalmOSGlue
 
 
 $(TARGET).prc: code0001.bin
-	$(PILRC) -ro -o $(TARGET).prc -type $(TYPE) -name $(TARGET) -I $(RSC) $(RCP) && rm code0001.bin
+	$(PILRC) -ro -o $(TARGET).prc -type $(TYPE) -name $(TARGET) -L ENGLISH -I $(RSC) $(RCP) && rm code0001.bin
 
 %.bin: %.elf
 	$(OBJCOPY) -O binary $< $@ -j.vec -j.text -j.rodata

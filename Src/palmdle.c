@@ -3,6 +3,7 @@
 #include <string.h>
 #include "resID.h"
 #include "wordlists.h"
+#include "strings.h"
 
 #define WORD_LEN  5
 #define MAX_GUESS 6
@@ -215,13 +216,13 @@ static void DrawStatsBoard(PalmdleVars* pstVars) {
 	int x = 0;
 	int y = ALPHA_Y + 4;
 
-	StrPrintF(szLabels[0], "Played");
+	StrPrintF(szLabels[0], STATS_SMALL_PLAYED);
 	StrPrintF(szVals[0], "%d", pstVars->pstPrefs->uiGamesPlayed);
-	StrPrintF(szLabels[1], "Won");
+	StrPrintF(szLabels[1], STATS_SMALL_WON);
 	StrPrintF(szVals[1], "%d", pstVars->pstPrefs->uiGamesWon);
-	StrPrintF(szLabels[2], "Streak");
+	StrPrintF(szLabels[2], STATS_SMALL_STREAK);
 	StrPrintF(szVals[2], "%d", pstVars->pstPrefs->uiStreak);
-	StrPrintF(szLabels[3], "Max str.");
+	StrPrintF(szLabels[3], STATS_SMALL_MAX_STREAK);
 	StrPrintF(szVals[3], "%d", pstVars->pstPrefs->uiMaxStreak);
 
 	for (int i = 0; i < 4; i++) {
@@ -600,7 +601,7 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 	if (pstGame->enState == enDailyGame) {
 		StrPrintF(pstVars->szTitle, "%d", pstGame->uiAnswerIndex);
 	} else {
-		StrPrintF(pstVars->szTitle, "Random");
+		StrPrintF(pstVars->szTitle, RANDOM_TITLE);
 	}
 }
 
@@ -642,10 +643,10 @@ static void UpdateStatsTable(TableType* objTable, PalmdleVars* pstVars) {
 	char szTableLabels[4][16];
 	int i;
 
-	StrPrintF(szTableLabels[0], "Games Played");
-	StrPrintF(szTableLabels[1], "Games Won");
-	StrPrintF(szTableLabels[2], "Current Streak");
-	StrPrintF(szTableLabels[3], "Longest Streak");
+	StrPrintF(szTableLabels[0], STATS_PLAYED);
+	StrPrintF(szTableLabels[1], STATS_WON);
+	StrPrintF(szTableLabels[2], STATS_STREAK);
+	StrPrintF(szTableLabels[3], STATS_MAX_STREAK);
 
 	for (i = 0; i < 4; i++) {
 		TblSetItemStyle(objTable, i, 0, labelTableItem);
