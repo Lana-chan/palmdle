@@ -4,7 +4,7 @@
 
 A clone of the Internet-famous 5-letter word guessing game, for Palm OS 2.0 and later!
 
-Binaries available in the [Releases][2] page
+Binaries available in the [Releases][2] page. Do not mirror them elsewhere without [my express permission][3].
 
 ## Compiling
 
@@ -20,3 +20,4 @@ https://dmitry.gr/ - For help with the Palm OS API and encouragement
 
 [1]: https://palm2000.com/projects/compilingAndBuildingPalmOsAppsOnUbuntu2004LTS.php
 [2]: https://github.com/Lana-chan/palmdle/releases
+[3]: https://maple.pet/about
