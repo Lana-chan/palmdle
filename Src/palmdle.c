@@ -474,6 +474,18 @@ static Boolean CaselessCompare(const char* sz1, const char* sz2, UInt8 ucLen) {
 }
 
 /***************************
+ * Description: checks if game state should have stats tracked
+ * Input      : enState - game state
+ * Output     : none
+ * Return     : true or false
+ ***************************/
+static Boolean IsTrackedGame(PalmdleState enState) {
+	if (enState == enDailyGame) return true;
+	if (enState == enCheckedGame) return true;
+	return false;
+}
+
+/***************************
  * Description: uses form guess field to process and populate next guess in game
  * Input      : pstVars - vars struct
  * Output     : none
@@ -504,7 +516,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 				pstVars->pstPrefs->uiGuessWon[pstGame->ucGuessCount-1] += 1;
 				pstGame->ucGuessCount = MAX_GUESS;
 
-				if (pstGame->enState == enDailyGame) {
+				if (isTrackedGame(pstGame->enState)) {
 					DateType dateToday;
 					DateSecondsToDate(TimGetSeconds(), &dateToday);
 
@@ -521,7 +533,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			} else if (pstGame->ucGuessCount == MAX_GUESS) {
 				FrmCustomAlert(AlertLose, pstGame->szWord, "", "");
 
-				if (pstGame->enState == enDailyGame) {
+				if (isTrackedGame(pstGame->enState)) {
 					pstVars->pstPrefs->uiStreak = 0;
 				}
 
