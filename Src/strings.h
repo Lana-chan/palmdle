@@ -1,5 +1,5 @@
 #define GAME_TITLE		"Palmdle"
-#define ABOUT_TITLE		"Palmdle v2.0"
+#define ABOUT_TITLE		"Palmdle v2.0.1"
 #define RANDOM_TITLE	"Random"
 #define ONLINE_TITLE	"Online"
 #define OFFLINE_TITLE	"Classic"

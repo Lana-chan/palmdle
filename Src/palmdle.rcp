@@ -7,7 +7,7 @@ DATA "word" ID AllowedListFile "allowedlist.bin"
 DATA "word" ID AllowedIndexFile "allowedindex.bin"
 DATA "word" ID AnswerListFile "answerlist.bin"
 
-VERSION "2.0"
+VERSION "2.0.1"
 ICON "assets/icon1bpp.bmp" "" "" "assets/icon8bpp.bmp" TRANSPARENT 254 0 254
 LAUNCHERCATEGORY "Games"
 
