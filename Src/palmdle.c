@@ -44,18 +44,21 @@ typedef enum {
 
 typedef enum {
 	enNoGame = 0,
-	enDailyGame,
-	enUntrackedGame
+	enDailyGame,      // "classic", uses sequential daily answer
+	enUntrackedGame,  // "random", doesn't affect stats
+	enCheckedGame,    // "online", uses NYT ID
 } PalmdleState;
 
-typedef struct t_PalmdleGame {
+// -- kept for 1.2 prefs compat
+
+typedef struct t_PalmdleGameV1 {
 	UInt16 uiAnswerIndex;                     // index of the answer
 	char szWord[WORD_LEN + 1];                // word to be guessed
 	char szGuesses[MAX_GUESS][WORD_LEN + 1];  // stores the play field
 	char szGuessedLetters[ALPHA_LEN];         // store which letters have already been guessed
 	UInt8 ucGuessCount;                       // number of current guess (starts at 0)
 	PalmdleState enState;                     // state of the game
-} PalmdleGame;
+} PalmdleGameV1;
 
 typedef struct t_PalmdlePrefsV1 {
 	DateType dateLastPlayed;                  // date which the last daily game was played
@@ -64,8 +67,22 @@ typedef struct t_PalmdlePrefsV1 {
 	UInt16 uiMaxStreak;                       // longest streak
 	UInt16 uiGamesWon;                        // total games won
 	UInt16 uiGamesPlayed;                     // total games played
-	PalmdleGame stSavedGame;                  // a saved game
+	PalmdleGameV1 stSavedGame;                  // a saved game
 } PalmdlePrefsV1;
+
+// --
+
+typedef struct t_PalmdleGame {
+	// Palmdle up to 1.2 - AppVersionV1
+	UInt16 uiAnswerIndex;                     // index of the answer (game number)
+	char szWord[WORD_LEN + 1];                // word to be guessed
+	char szGuesses[MAX_GUESS][WORD_LEN + 1];  // stores the play field
+	char szGuessedLetters[ALPHA_LEN];         // store which letters have already been guessed
+	UInt8 ucGuessCount;                       // number of current guess (starts at 0)
+	PalmdleState enState;                     // state of the game
+	// new to Palmdle 2.0
+	UInt16 uiCheckedIndex;                    // NYT given ID (new answer index)
+} PalmdleGame;
 
 typedef struct t_PalmdlePrefs {
 	// Palmdle up to 1.2 - AppVersionV1
@@ -77,8 +94,9 @@ typedef struct t_PalmdlePrefs {
 	UInt16 uiGamesPlayed;                     // total games played
 	PalmdleGame stSavedGame;                  // a saved game
 	// new to Palmdle 2.0
-	Boolean bReadAbout;                       // don't show about at launch
-	UInt16 uiGuessWon[6];                     // count of games won per guesses taken
+	Boolean boolReadAbout;                    // don't show about at launch
+	Boolean boolAlwaysClassic;                // don't ask for daily ID
+	UInt16 uiGuessWon[MAX_GUESS];             // count of games won per guesses taken
 } PalmdlePrefs;
 
 typedef struct t_PalmdleVars {
@@ -483,6 +501,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			// check if game has been lost or won
 			if (CaselessCompare(szGuess, pstGame->szWord, WORD_LEN)) {
 				FrmAlert(AlertWin);
+				pstVars->pstPrefs->uiGuessWon[pstGame->ucGuessCount] += 1;
 				pstGame->ucGuessCount = MAX_GUESS;
 
 				if (pstGame->enState == enDailyGame) {
@@ -559,6 +578,101 @@ static void PrefsSave(PalmdleVars* pstVars, Boolean fSaveGame) {
 }
 
 /***************************
+ * Description: check if answer ID is valid and warn if not
+ * Input      : uiCheckID - answer ID to check
+ *              szCheckID - string version of ID
+ * Output     : none
+ * Return     : true if valid, false otherwise
+ ***************************/
+static Boolean CheckValidAnswerID(UInt16 uiCheckID, const char* szCheckID) {
+	Boolean boolValid = true;
+	char szTmp[maxStrIToALen];
+
+	StrIToA(szTmp, uiCheckID);
+	if (StrCompare(szTmp, szCheckID)) boolValid = false;
+
+	// NYT starts id at 1 not 0
+	if (uiCheckID - 1 >= ANSWER_COUNT) boolValid = false;
+
+	if (!boolValid) {
+		FrmAlert(AlertInvalidID);
+		return false;
+	}
+
+	return true;
+}
+
+/***************************
+ * Description: show ID input form and handle
+ * Input      : frmMain - the main form to return to
+ *            : pstVars - vars struct
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void ShowIDInputForm(FormType* frmMain, PalmdleVars* pstVars) {
+	EventType event;
+	UInt16 error;
+	FormType* frmDialog = FrmInitForm(FormIDInput);
+	FrmSetActiveForm(frmDialog);
+	FrmDrawForm(frmDialog);
+
+	char szTmp[32];
+	StrPrintF(szTmp, FORM_ID_PROMPT, pstVars->stGame.uiAnswerIndex);
+	FntSetFont(boldFont);
+	WinDrawChars(szTmp, strlen(szTmp), 10, 89);
+
+	UInt16 uiFieldIndex = FrmGetObjectIndex(frmDialog, FieldID);
+	FrmSetFocus(frmDialog, uiFieldIndex);
+
+	// preemptively set random game in case form is closed an unhandled way
+	pstVars->stGame.enState = enUntrackedGame;
+
+	do {
+		EvtGetEvent(&event, evtWaitForever);
+		
+		if (SysHandleEvent(&event))
+			continue;
+
+		if (event.eType == ctlSelectEvent) {
+			if (event.data.ctlSelect.controlID == ButtonDialog) {
+				// play online game, check entered id is valid and set up online game
+				FieldType* objIDField = (FieldType*)FrmGetObjectPtr(frmDialog,
+					uiFieldIndex);
+				char* szCheckID = FldGetTextPtr(objIDField);
+				if (szCheckID) {
+					UInt16 uiCheckID = StrAToI(szCheckID);
+					
+					if (CheckValidAnswerID(uiCheckID, szCheckID)) {
+						pstVars->stGame.enState = enCheckedGame;
+						pstVars->stGame.uiCheckedIndex = uiCheckID - 1; // NYT starts id at 1 not 0
+						break;
+					}
+				}
+			}
+
+			if (event.data.ctlSelect.controlID == ButtonOffline) {
+				// play classic game, answer index is same as game number
+				pstVars->stGame.enState = enDailyGame;
+				pstVars->stGame.uiCheckedIndex = pstVars->stGame.uiAnswerIndex;
+				break;
+			}
+
+			if (event.data.ctlSelect.controlID == ButtonRandom) {
+				// play random game, don't affect stats
+				// we already set this at the start so quitting the form is safe
+				break;
+			}
+		}
+
+		FrmHandleEvent(frmDialog, &event);
+	} while (event.eType != appStopEvent);
+
+	FrmEraseForm(frmDialog);
+	FrmSetActiveForm(frmMain);
+	FrmDeleteForm(frmDialog);
+}
+
+/***************************
  * Description: initialize game struct
  * Input      : pstVars - vars struct, game state must be enNoGame for new game
  *            : fIsDaily - are we initing a daily game or a random game?
@@ -626,26 +740,39 @@ static void GameInit(PalmdleVars* pstVars, Boolean fIsDaily) {
 
 			UInt16 uiDateDifference = (DateToDays(stDate) - DateToDays(stBaseDate));
 			pstGame->uiAnswerIndex = uiDateDifference % ANSWER_COUNT;
-
 			pstGame->enState = enDailyGame;
+
+			if (pstGame->uiAnswerIndex > 505) {
+				ShowIDInputForm(pstVars->frmMain, pstVars);
+			}
+			
+			// user decided to play random game instead. goto is easiest
+			if (pstGame->enState == enUntrackedGame) goto setRandomGame;
+
 			pstVars->pstPrefs->dateLastPlayed = stDate;
 			pstVars->pstPrefs->uiGamesPlayed += 1;
 		} else {
 			// random index game
-			pstGame->uiAnswerIndex = SysRandom(0) % ANSWER_COUNT;
+setRandomGame:
+			pstGame->uiCheckedIndex = SysRandom(0) % ANSWER_COUNT;
 			pstGame->enState = enUntrackedGame;
 		}
 	}
 
-	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiAnswerIndex * (WORD_LEN), WORD_LEN);
+	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiCheckedIndex * (WORD_LEN), WORD_LEN);
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
 	pstVars->boolHideLetters = false;
 
-	if (pstGame->enState == enDailyGame) {
-		StrPrintF(pstVars->szTitle, "%d", pstGame->uiAnswerIndex);
-	} else {
-		StrPrintF(pstVars->szTitle, RANDOM_TITLE);
+	switch (pstGame->enState) {
+		case enDailyGame:
+			StrPrintF(pstVars->szTitle, "%d (%s)", pstGame->uiAnswerIndex, OFFLINE_TITLE);
+			break;
+		case enCheckedGame:
+			StrPrintF(pstVars->szTitle, "%d (%s)", pstGame->uiAnswerIndex, ONLINE_TITLE);
+			break;
+		default:
+			StrPrintF(pstVars->szTitle, RANDOM_TITLE);
 	}
 }
 
@@ -772,11 +899,13 @@ static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID, PalmdleVars* pstV
 	FrmSetActiveForm(frmDialog);
 	FrmDrawForm(frmDialog);
 
-	UInt16 obj = FrmGetObjectIndex(frmDialog, CheckboxRead);
 	ControlPtr ctl = NULL;
-	if (obj != frmInvalidObjectId) {
-		ctl = (ControlPtr)FrmGetObjectPtr(frmDialog, obj);
-		CtlSetValue (ctl, pstVars->pstPrefs->bReadAbout);
+	if (uiFormID == FormAbout) {
+		UInt16 obj = FrmGetObjectIndex(frmDialog, CheckboxRead);
+		if (obj != frmInvalidObjectId) {
+			ctl = (ControlPtr)FrmGetObjectPtr(frmDialog, obj);
+			CtlSetValue (ctl, pstVars->pstPrefs->boolReadAbout);
+		}
 	}
 
 	do {
@@ -789,12 +918,10 @@ static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID, PalmdleVars* pstV
 			if (event.data.ctlSelect.controlID == ButtonDialog) {
 				break;
 			}
-		}
 
-		if (event.eType == ctlSelectEvent) {
 			if (event.data.ctlSelect.controlID == CheckboxRead) {
 				if (ctl != NULL) {
-					pstVars->pstPrefs->bReadAbout = CtlGetValue(ctl);
+					pstVars->pstPrefs->boolReadAbout = CtlGetValue(ctl);
 				}
 			}
 		}
@@ -917,7 +1044,7 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 		GameInit(pstVars, true);
 		GameUpdateScreen(pstVars);
 
-		if (!pstVars->pstPrefs->bReadAbout) {
+		if (!pstVars->pstPrefs->boolReadAbout) {
 			ShowDialogForm(FrmGetActiveForm(), FormAbout, pstVars);
 		}
 

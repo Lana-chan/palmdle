@@ -21,6 +21,11 @@
 #define ButtonDelete  1301
 #define TableStats    1302
 
+#define FormIDInput   1400
+#define ButtonOffline 1401
+#define ButtonRandom  1402
+#define FieldID       1403
+
 #define AlertDebug        700
 #define AlertWin          701
 #define AlertLose         702
@@ -28,6 +33,7 @@
 #define AlertAlreadyDaily 704
 #define AlertForfeit      705
 #define AlertDelete       706
+#define AlertInvalidID    707
 
 #define MainFtrCreator  0x6d617669
 #define MainFtrNum      42

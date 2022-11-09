@@ -1,6 +1,8 @@
 #define GAME_TITLE		"Palmdle"
 #define ABOUT_TITLE		"Palmdle v2.0"
 #define RANDOM_TITLE	"Random"
+#define ONLINE_TITLE	"Online"
+#define OFFLINE_TITLE	"Classic"
 
 #define MENU_GAME							"Game"
 #define MENU_GAME_NEW					"New random game"
@@ -40,6 +42,9 @@
 #define ALERT_DELETE_TITLE	"Delete all stats?"
 #define ALERT_DELETE_MSG		"You will lose all your current Palmdle data. Are you sure?"
 
+#define ALERT_INVALID_ID_TITLE	"Invalid ID"
+#define ALERT_INVALID_ID_MSG		"The ID you entered is invalid."
+
 #define HELP_1	"Guess a new five-letter"
 #define HELP_2	"word each day in six tries."
 #define HELP_3	"Each guess must be a valid word,"
@@ -59,3 +64,13 @@
 #define STATS_SMALL_WON					"Won"
 #define STATS_SMALL_STREAK			"Streak"
 #define STATS_SMALL_MAX_STREAK	"Max str."
+
+#define FORM_ID_TITLE			"Enter game ID"
+#define FORM_ID_INFO_1		"Visit https://palmdle.maple.pet"
+#define FORM_ID_INFO_2		"to find the current game ID"
+#define FORM_ID_INFO_3		"Or pick a different mode:"
+#define FORM_ID_INFO_4		"Classic - Original answer list"
+#define FORM_ID_INFO_5		"Random - Doesn't affect stats"
+#define FORM_ID_PROMPT    "Palmdle %d ID:"
+#define FORM_ID_OFFLINE   "Classic"
+#define FORM_ID_RANDOM    "Random"
