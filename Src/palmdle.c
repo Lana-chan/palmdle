@@ -57,7 +57,7 @@ typedef struct t_PalmdleGame {
 	PalmdleState enState;                     // state of the game
 } PalmdleGame;
 
-typedef struct t_PalmdlePrefs {
+typedef struct t_PalmdlePrefsV1 {
 	DateType dateLastPlayed;                  // date which the last daily game was played
 	DateType dateLastWon;                     // date which the last daily game was won
 	UInt16 uiStreak;                          // streak counter
@@ -65,6 +65,20 @@ typedef struct t_PalmdlePrefs {
 	UInt16 uiGamesWon;                        // total games won
 	UInt16 uiGamesPlayed;                     // total games played
 	PalmdleGame stSavedGame;                  // a saved game
+} PalmdlePrefsV1;
+
+typedef struct t_PalmdlePrefs {
+	// Palmdle up to 1.2 - AppVersionV1
+	DateType dateLastPlayed;                  // date which the last daily game was played
+	DateType dateLastWon;                     // date which the last daily game was won
+	UInt16 uiStreak;                          // streak counter
+	UInt16 uiMaxStreak;                       // longest streak
+	UInt16 uiGamesWon;                        // total games won
+	UInt16 uiGamesPlayed;                     // total games played
+	PalmdleGame stSavedGame;                  // a saved game
+	// new to Palmdle 2.0
+	Boolean bReadAbout;                       // don't show about at launch
+	UInt16 uiGuessWon[6];                     // count of games won per guesses taken
 } PalmdlePrefs;
 
 typedef struct t_PalmdleVars {
@@ -514,11 +528,17 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
  * Return     : none
  ***************************/
 static void PrefsLoad(PalmdleVars* pstVars) {
-	if (!PrefGetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs))) {
-		MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
+	MemSet(pstVars->pstPrefs, sizeof(PalmdlePrefs), 0);
+
+	// check for saved prefs for earlier version
+	if (PrefGetAppPreferencesV10(MainFtrCreator, AppVersionV1, pstVars->pstPrefs, sizeof(PalmdlePrefsV1))) {
+		// do nothing, loaded old prefs
+	} else {
+		PrefGetAppPreferencesV10(MainFtrCreator, AppVersion, pstVars->pstPrefs, sizeof(PalmdlePrefs));
+		// either loaded new prefs or didn't, prefs already initialized to 0 anyway
 	}
 
-	// 2.0 date fix?
+	// Palm OS 2.0 date fix?
 	if (pstVars->pstPrefs->dateLastPlayed.year == 0) {
 		DateSecondsToDate(TimGetSeconds(), &pstVars->pstPrefs->dateLastPlayed);
 		DateAdjust(&pstVars->pstPrefs->dateLastPlayed, -1);
@@ -741,15 +761,24 @@ static void ShowStatsForm(FormType* frmMain, PalmdleVars* pstVars) {
  * Description: show dialog form and handle
  * Input      : frmMain - the main form to return to
  *              uiFormID - ID of the (generic) dialog form to show
+ *              pstVars - Palmdle vars
  * Output     : none
  * Return     : none
  ***************************/
-static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID) {
+static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID, PalmdleVars* pstVars) {
 	EventType event;
 	UInt16 error;
 	FormType* frmDialog = FrmInitForm(uiFormID);
 	FrmSetActiveForm(frmDialog);
 	FrmDrawForm(frmDialog);
+
+	UInt16 obj = FrmGetObjectIndex(frmDialog, CheckboxRead);
+	ControlPtr ctl = NULL;
+	if (obj != frmInvalidObjectId) {
+		ctl = (ControlPtr)FrmGetObjectPtr(frmDialog, obj);
+		CtlSetValue (ctl, pstVars->pstPrefs->bReadAbout);
+	}
+
 	do {
 		EvtGetEvent(&event, evtWaitForever);
 		
@@ -759,6 +788,14 @@ static void ShowDialogForm(FormType* frmMain, UInt16 uiFormID) {
 		if (event.eType == ctlSelectEvent) {
 			if (event.data.ctlSelect.controlID == ButtonDialog) {
 				break;
+			}
+		}
+
+		if (event.eType == ctlSelectEvent) {
+			if (event.data.ctlSelect.controlID == CheckboxRead) {
+				if (ctl != NULL) {
+					pstVars->pstPrefs->bReadAbout = CtlGetValue(ctl);
+				}
 			}
 		}
 
@@ -814,11 +851,11 @@ static Boolean GameHandleEvent(EventType* event, PalmdleVars* pstVars) {
 		case menuEvent:
 			switch(event->data.menu.itemID) {
 				case MenuAbout:
-					ShowDialogForm(FrmGetActiveForm(), FormAbout);
+					ShowDialogForm(FrmGetActiveForm(), FormAbout, pstVars);
 					return true;
 
 				case MenuHelp:
-					ShowDialogForm(FrmGetActiveForm(), FormHelp);
+					ShowDialogForm(FrmGetActiveForm(), FormHelp, pstVars);
 					return true;
 
 				case MenuStats:
@@ -879,6 +916,10 @@ UInt32 PilotMain(UInt16 cmd, void *cmdPBP, UInt16 launchFlags) {
 
 		GameInit(pstVars, true);
 		GameUpdateScreen(pstVars);
+
+		if (!pstVars->pstPrefs->bReadAbout) {
+			ShowDialogForm(FrmGetActiveForm(), FormAbout, pstVars);
+		}
 
 		do {
 			EvtGetEvent(&event, evtWaitForever);

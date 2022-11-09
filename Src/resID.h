@@ -11,6 +11,7 @@
 #define FormAbout     1100
 #define MapleBitmap   1101
 #define ButtonDialog  1102
+#define CheckboxRead  1103
 
 #define FormHelp      1200
 #define BitmapWrong   1201
@@ -30,7 +31,8 @@
 
 #define MainFtrCreator  0x6d617669
 #define MainFtrNum      42
-#define AppVersion      100
+#define AppVersionV1    100
+#define AppVersion      200
 
 #define AllowedListFile   900
 #define AllowedIndexFile  901

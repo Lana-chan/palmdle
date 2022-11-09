@@ -1,5 +1,5 @@
 #define GAME_TITLE		"Palmdle"
-#define ABOUT_TITLE		"Palmdle v1.3"
+#define ABOUT_TITLE		"Palmdle v2.0"
 #define RANDOM_TITLE	"Random"
 
 #define MENU_GAME							"Game"
@@ -22,8 +22,11 @@
 #define DIALOG_YES	"Yes"
 #define DIALOG_NO		"No"
 
-#define ALERT_WIN_TITLE	"Sorry!"
-#define ALERT_WIN_MSG		"You ran out of guesses.\nThe word was: ^1"
+#define ALERT_WIN_TITLE	"Congratulations!"
+#define ALERT_WIN_MSG		"You guessed the word!"
+
+#define ALERT_LOSE_TITLE	"Sorry!"
+#define ALERT_LOSE_MSG		"You ran out of guesses.\nThe word was: ^1"
 
 #define ALERT_NEW_TITLE	"New daily available!"
 #define ALERT_NEW_MSG		"There is a new daily challenge available.\nWould you like to play it now?"
