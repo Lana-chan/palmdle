@@ -501,7 +501,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			// check if game has been lost or won
 			if (CaselessCompare(szGuess, pstGame->szWord, WORD_LEN)) {
 				FrmAlert(AlertWin);
-				pstVars->pstPrefs->uiGuessWon[pstGame->ucGuessCount] += 1;
+				pstVars->pstPrefs->uiGuessWon[pstGame->ucGuessCount-1] += 1;
 				pstGame->ucGuessCount = MAX_GUESS;
 
 				if (pstGame->enState == enDailyGame) {
