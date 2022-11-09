@@ -1,10 +1,13 @@
 # Palmdle
 
-![image](https://user-images.githubusercontent.com/9155588/155938313-9657fd95-81a3-43f7-8d41-3155108eaeeb.png)
+![Color Palmdle screenshot](https://user-images.githubusercontent.com/9155588/200773041-3e573ea9-d5f6-4d34-98fc-4c6c0c627f02.png)
+![Monochrome Palmdle screenshot](https://user-images.githubusercontent.com/9155588/200773059-f933996f-af4b-478e-9e22-583f1d964554.png)
 
 A clone of the Internet-famous 5-letter word guessing game, for Palm OS 2.0 and later!
 
 Binaries available in the [Releases][2] page. Do not mirror them elsewhere without [my express permission][3].
+
+Dear PalmDB: Transphobia isn't cool.
 
 ## Compiling
 
