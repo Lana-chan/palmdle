@@ -516,7 +516,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 				pstVars->pstPrefs->uiGuessWon[pstGame->ucGuessCount-1] += 1;
 				pstGame->ucGuessCount = MAX_GUESS;
 
-				if (isTrackedGame(pstGame->enState)) {
+				if (IsTrackedGame(pstGame->enState)) {
 					DateType dateToday;
 					DateSecondsToDate(TimGetSeconds(), &dateToday);
 
@@ -533,7 +533,7 @@ static void GameSubmitGuess(PalmdleVars* pstVars) {
 			} else if (pstGame->ucGuessCount == MAX_GUESS) {
 				FrmCustomAlert(AlertLose, pstGame->szWord, "", "");
 
-				if (isTrackedGame(pstGame->enState)) {
+				if (IsTrackedGame(pstGame->enState)) {
 					pstVars->pstPrefs->uiStreak = 0;
 				}
 
