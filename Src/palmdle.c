@@ -604,7 +604,8 @@ static Boolean CheckValidAnswerID(UInt16 uiCheckID, const char* szCheckID) {
 	if (StrCompare(szTmp, szCheckID)) boolValid = false;
 
 	// NYT starts id at 1 not 0
-	if (uiCheckID - 1 >= ANSWER_COUNT) boolValid = false;
+	// v2.1: we are now pulling from allowed guesses as well
+	if (uiCheckID - 1 >= ANSWER_COUNT + ALLOWED_COUNT) boolValid = false;
 
 	if (!boolValid) {
 		FrmAlert(AlertInvalidID);
@@ -682,6 +683,41 @@ static void ShowIDInputForm(FormType* frmMain, PalmdleVars* pstVars) {
 	FrmEraseForm(frmDialog);
 	FrmSetActiveForm(frmMain);
 	FrmDeleteForm(frmDialog);
+}
+
+/***************************
+ * Description: fetch word from allowed guesses list and populate solution word
+ * Input      : pstVars - vars struct, game state must be enNoGame for new game
+ * Output     : none
+ * Return     : none
+ ***************************/
+static void FetchSolutionFromAllowed(PalmdleVars* pstVars) {
+	PalmdleGame* pstGame = &pstVars->stGame;
+
+	unsigned int uiWantedIndex = pstGame->uiCheckedIndex - ANSWER_COUNT;
+
+	unsigned int uiAllowedIndex = 0;
+	unsigned int uiAllowedCount = 0;
+	unsigned int i;
+	for (i = 0; i < ALLOWED_INDEX_COUNT; i++) {
+		uiAllowedCount += *(unsigned char*)(pstVars->allowed_idx_ptr + i);
+		if (uiAllowedCount >= uiWantedIndex) {
+			uiAllowedIndex = i;
+			break;
+		}
+	}
+
+	unsigned char ucAllowedWord[B26_LEN];
+	MemMove(ucAllowedWord, pstVars->allowed_ptr + (uiWantedIndex * (B26_LEN)), B26_LEN);
+	unsigned int uiAllowedWordInt = ucAllowedWord[0] << 8 | ucAllowedWord[1];
+
+	pstGame->szWord[0] = 'A' + (uiAllowedIndex / 26);
+	pstGame->szWord[1] = 'A' + (uiAllowedIndex % 26);
+	pstGame->szWord[4] = 'A' + (uiAllowedWordInt % 26);
+	uiAllowedWordInt /= 26;
+	pstGame->szWord[3] = 'A' + (uiAllowedWordInt % 26);
+	uiAllowedWordInt /= 26;
+	pstGame->szWord[2] = 'A' + (uiAllowedWordInt % 26);
 }
 
 /***************************
@@ -771,7 +807,11 @@ setRandomGame:
 		}
 	}
 
-	MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiCheckedIndex * (WORD_LEN), WORD_LEN);
+	if (pstGame->uiCheckedIndex < ANSWER_COUNT) {
+		MemMove(pstGame->szWord, pstVars->answer_ptr + pstGame->uiCheckedIndex * (WORD_LEN), WORD_LEN);
+	} else {
+		FetchSolutionFromAllowed(pstVars);
+	}
 	pstGame->szWord[WORD_LEN] = (char)'\0';
 
 	pstVars->boolHideLetters = false;
